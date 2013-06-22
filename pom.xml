@@ -1,0 +1,92 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.spartansoftwareinc.okapi.ant</groupId>
+  <artifactId>okapi-ant</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>okapi-ant</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <okapi.version>0.21</okapi.version>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>okapi-release</id>
+      <name>Okapi Release</name>
+      <url>http://repository-okapi.forge.cloudbees.com/release/</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.ant</groupId>
+      <artifactId>ant</artifactId>
+      <version>1.9.1</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.okapi.applications</groupId>
+      <artifactId>okapi-application-rainbow</artifactId>
+      <version>${okapi.version}</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>macosx</artifactId>
+          <groupId>org.eclipse.swt.carbon</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>ppc</artifactId>
+          <groupId>org.eclipse.swt.gtk.linux</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>x86</artifactId>
+          <groupId>org.eclipse.swt.gtk.linux</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>x86_64</artifactId>
+          <groupId>org.eclipse.swt.gtk.linux</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>sparc</artifactId>
+          <groupId>org.eclipse.swt.gtk.solaris</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>ppc</artifactId>
+          <groupId>org.eclipse.swt.motif.aix</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>x86</artifactId>
+          <groupId>org.eclipse.swt.win32.win32</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>x86</artifactId>
+          <groupId>org.eclipse.swt.wpf.win32</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
