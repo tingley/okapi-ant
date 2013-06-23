@@ -1,0 +1,12 @@
+<project name="test" default="build" basedir=".">
+
+    <taskdef name="pipeline" 
+        classname="com.spartansoftwareinc.okapi.ant.PipelineTask" 
+        classpath="target/okapi-ant-1.0-SNAPSHOT.jar" />
+
+    <target name="build">
+        <pipeline bconf="foo.bconf" />
+    </target>
+
+
+</project>
