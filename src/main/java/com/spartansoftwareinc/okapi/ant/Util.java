@@ -37,10 +37,13 @@ public class Util {
 		dir.delete();
 	}
 	
-	public static File copyJarToDirectory(File dir, File f) throws IOException {
-		// Use temp file functionality to avoid name collisions when we 
-		// flatten the directory structure
-		File dest = File.createTempFile("plugin", ".jar", dir);
+	public static File copyJarToDirectory(File dir, File f, boolean useTempName) throws IOException {
+		File dest = new File(dir, f.getName());
+		if (useTempName) {
+			// Use temp file functionality to avoid name collisions when we 
+			// flatten the directory structure
+			dest = File.createTempFile("plugin", ".jar", dir);
+		}
 		InputStream is = new BufferedInputStream(new FileInputStream(f));
 		OutputStream os = new BufferedOutputStream(new FileOutputStream(dest));
 		byte[] buf = new byte[8192];

@@ -32,6 +32,8 @@ public class AssembleBatchConfigTask extends Task {
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	
+	private File tempPluginsDir = null;
+	
 	public void setOkapiLib(String okapiLib) {
 		this.okapiLib = okapiLib;
 	}
@@ -68,11 +70,9 @@ public class AssembleBatchConfigTask extends Task {
 			File baseDir = ds.getBasedir();
 			for (String filename : ds.getIncludedFiles()) {
 				File f = new File(baseDir, filename);
-				File out = Util.copyJarToDirectory(tempPluginsDir, f);
-				System.out.println("Including: " + f + " --> " + out);
+				Util.copyJarToDirectory(tempPluginsDir, f, false);
 			}
 		}
-		System.out.println("Discovering from " + tempPluginsDir);
 		PluginsManager plManager = new PluginsManager();
 		plManager.discover(tempPluginsDir, false);
 		return plManager;
@@ -91,6 +91,9 @@ public class AssembleBatchConfigTask extends Task {
 			runPlugin();
 		}
 		finally {
+			if (tempPluginsDir != null) {
+				Util.deleteDirectory(tempPluginsDir);
+			}
 			Thread.currentThread().setContextClassLoader(oldClassLoader);
 		}
 	}
@@ -122,7 +125,6 @@ public class AssembleBatchConfigTask extends Task {
 		// PManager.discover() doesn't work on individual
 		// files, so I need to copy the contents of the task's
 		// fileset to a temporary directory.
-		File tempPluginsDir = null;
 		PluginsManager plManager = null;
 		try {
 			tempPluginsDir = Util.createTempDir("plugins");
@@ -165,15 +167,9 @@ public class AssembleBatchConfigTask extends Task {
         	}
         }
         
-		// What next?
-		// XXX One issue with the jar renaming is that means that the bconf will include the JARs
-		// in their renamed forms.  
 		BatchConfiguration bconfig = new BatchConfiguration();
 		System.out.println("Writing batch configuration to " + bconfPath);
 		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
-		
-		Util.deleteDirectory(tempPluginsDir);
-
 	}
 	
 	private FilterConfigurationMapper getFilterMapper(PluginsManager plManager) {
