@@ -7,26 +7,23 @@
         <fileset dir="target" includes="okapi-ant-1.0-SNAPSHOT.jar" />
     </path>
 
-    <!-- XXX I can probably use shade to embed okapi and then use 
-         antlib.xml, but that is hacky.  I should probably depend
-         on some OKAPI_HOME-type thing. -->
-
+    <!--
     <taskdef name="pipeline" 
         classname="com.spartansoftwareinc.okapi.ant.PipelineTask" 
         classpathref="okapi.classpath" />
+        -->
 
     <taskdef name="mkbconf" 
         classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask" 
         classpathref="okapi.classpath" />
 
     <target name="build">
-        <!--
-        <pipeline bconf="import.bconf" />
-        -->
         <mkbconf settings="config/pipeline.pln" 
                  bconfPath="output.bconf"
                  okapiLib="${okapi.lib}">
             <fileset dir="config" includes="**/*.jar"/>
+            <filterMapping extension=".xml" filterConfig="okf_dcxrx" />
+            <filterMapping extension="" filterConfig="okf_dcxrx" />
         </mkbconf>
     </target>
 

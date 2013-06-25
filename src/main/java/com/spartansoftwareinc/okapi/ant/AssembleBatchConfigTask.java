@@ -29,14 +29,11 @@ import org.apache.tools.ant.types.FileSet;
 
 // XXX Would be nice to allow loading from .pln or .rnb
 public class AssembleBatchConfigTask extends Task {
-	private static final String RNB_ATTR = "settings";
-	private static final String OKAPI_ATTR = "okapiLib";
-	private static final String BCONFPATH_ATTR = "bconfPath";
-	
 	private String okapiLib;
 	private String rnbPath;
 	private String bconfPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
+	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	
 	public void setOkapiLib(String okapiLib) {
 		this.okapiLib = okapiLib;
@@ -49,6 +46,11 @@ public class AssembleBatchConfigTask extends Task {
 	}
 	public void addFileset(FileSet fileset) {
 		this.filesets.add(fileset);
+	}
+	public FilterMapping createFilterMapping() {
+		FilterMapping fm = new FilterMapping();
+		filterMappings.add(fm);
+		return fm;
 	}
 	
 	/**
@@ -141,12 +143,21 @@ public class AssembleBatchConfigTask extends Task {
 		// XXX Hack - expect a raw pln file for now
         pipelineWrapper.load(rnbPath);
 
+        // Convert filter mappings into dummy input files so the extension
+        // map is generated.
+		List<Input> inputFiles = new ArrayList<Input>();
+        for (FilterMapping fm : filterMappings) {
+        	Input input = new Input();
+        	input.filterConfigId = fm.filterConfig;
+        	input.relativePath = "dummy" + fm.extension;
+        	// Other fields are unused by BatchConfiguration.exportConfiguration()
+        	inputFiles.add(input);
+        }
+        
 		// What next?
-		// I think I need to come up with dummy input files that I can use for file extensions.
 		// XXX One issue with the jar renaming is that means that the bconf will include the JARs
 		// in their renamed forms.  
 		BatchConfiguration bconfig = new BatchConfiguration();
-		List<Input> inputFiles = new ArrayList<Input>();
 		System.out.println("Writing batch configuration to " + bconfPath);
 		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
 		
@@ -183,16 +194,44 @@ public class AssembleBatchConfigTask extends Task {
         return pipelineWrapper;
     }
 	
+	public static class FilterMapping {
+		public FilterMapping() {}
+		String extension;
+		String filterConfig;
+		public void setExtension(String extension) {
+			this.extension = extension;
+		}
+		public void setFilterConfig(String filterConfig) {
+			this.filterConfig = filterConfig;
+		}
+		public String toString() {
+			return "FilterMapping('" + extension + "' --> " + filterConfig + ")";
+		}
+	}
 
+	private static final String RNB_ATTR = "settings";
+	private static final String OKAPI_ATTR = "okapiLib";
+	private static final String BCONFPATH_ATTR = "bconfPath";
+	private static final String FM_EXTENSION_ATTR = "extension";
+	private static final String FM_FILTER_ATTR = "filterConfig";
+	
 	private void checkConfiguration() {
 		checkPath(RNB_ATTR, rnbPath);
 		checkPath(OKAPI_ATTR, okapiLib);
 		checkExists(BCONFPATH_ATTR, bconfPath);
+		for (FilterMapping fm : filterMappings) {
+			checkFilterMapping(fm);
+		}
 	}
 
+	private void checkFilterMapping(FilterMapping fm) {
+		checkExists(FM_EXTENSION_ATTR, fm.extension);
+		checkExists(FM_FILTER_ATTR, fm.filterConfig);
+	}
+	
 	private void checkExists(String name, String value) {
 		if (value == null) {
-			throw new BuildException(name + " was not set");
+			throw new BuildException("Required attribute '" + name + "' was not set");
 		}
 	}
 	private void checkPath(String name, String value) {
