@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import net.sf.okapi.applications.rainbow.Input;
+import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
 import net.sf.okapi.applications.rainbow.pipeline.StepInfo;
 import net.sf.okapi.common.ExecutionContext;
@@ -29,9 +31,11 @@ import org.apache.tools.ant.types.FileSet;
 public class AssembleBatchConfigTask extends Task {
 	private static final String RNB_ATTR = "settings";
 	private static final String OKAPI_ATTR = "okapiLib";
+	private static final String BCONFPATH_ATTR = "bconfPath";
 	
 	private String okapiLib;
 	private String rnbPath;
+	private String bconfPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	
 	public void setOkapiLib(String okapiLib) {
@@ -40,7 +44,9 @@ public class AssembleBatchConfigTask extends Task {
 	public void setSettings(String settingsPath) {
 		this.rnbPath = settingsPath;
 	}
-	
+	public void setBconfPath(String bconfPath) {
+		this.bconfPath = bconfPath;
+	}
 	public void addFileset(FileSet fileset) {
 		this.filesets.add(fileset);
 	}
@@ -129,30 +135,41 @@ public class AssembleBatchConfigTask extends Task {
 		}
 		
 		File baseDir = getProject().getBaseDir();
-		PipelineWrapper pipelineWrapper = preparePipelineWrapper(baseDir, plManager);
-		
+		FilterConfigurationMapper fcMapper = getFilterMapper(plManager);
+		PipelineWrapper pipelineWrapper = preparePipelineWrapper(baseDir, 
+												fcMapper, plManager);
 		// XXX Hack - expect a raw pln file for now
         pipelineWrapper.load(rnbPath);
-		for (StepInfo stepInfo : pipelineWrapper.getSteps()) {
-			System.out.println(stepInfo.name);
-		}
 
+		// What next?
+		// I think I need to come up with dummy input files that I can use for file extensions.
+		// XXX One issue with the jar renaming is that means that the bconf will include the JARs
+		// in their renamed forms.  
+		BatchConfiguration bconfig = new BatchConfiguration();
+		List<Input> inputFiles = new ArrayList<Input>();
+		System.out.println("Writing batch configuration to " + bconfPath);
+		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
+		
 		Util.deleteDirectory(tempPluginsDir);
 
 	}
 	
-	// TODO: refactor with PipelineTask
-	// XXX This probably needs to expand the bconf somewhere temporary so that it can install 
-	// the plugins, etc?
-	// TODO: fcMapper.setCustomConfigurationsDirectory -- point to bconf location
-	private PipelineWrapper preparePipelineWrapper(File baseDir, PluginsManager plManager) {
+	private FilterConfigurationMapper getFilterMapper(PluginsManager plManager) {
 		// Initialize filter configurations
         FilterConfigurationMapper fcMapper = new FilterConfigurationMapper();
         DefaultFilters.setMappings(fcMapper, false, true);
         fcMapper.addFromPlugins(plManager);
         //fcMapper.setCustomConfigurationsDirectory(WorkspaceUtils.getConfigDirPath(projId));
         fcMapper.updateCustomConfigurations();
-
+        return fcMapper;
+    }
+	
+	// TODO: refactor with PipelineTask
+	// XXX This probably needs to expand the bconf somewhere temporary so that it can install 
+	// the plugins, etc?
+	// TODO: fcMapper.setCustomConfigurationsDirectory -- point to bconf location
+	private PipelineWrapper preparePipelineWrapper(File baseDir, 
+			FilterConfigurationMapper fcMapper, PluginsManager plManager) {
         // Load pipeline
         ExecutionContext context = new ExecutionContext();
         context.setApplicationName("okapi-ant");
@@ -170,12 +187,16 @@ public class AssembleBatchConfigTask extends Task {
 	private void checkConfiguration() {
 		checkPath(RNB_ATTR, rnbPath);
 		checkPath(OKAPI_ATTR, okapiLib);
+		checkExists(BCONFPATH_ATTR, bconfPath);
 	}
-	
-	private void checkPath(String name, String value) {
+
+	private void checkExists(String name, String value) {
 		if (value == null) {
 			throw new BuildException(name + " was not set");
 		}
+	}
+	private void checkPath(String name, String value) {
+		checkExists(name, value);
 		File f = new File(value);
 		if (!f.exists()) {
 			throw new BuildException("Invalid " + name + " value: " + 
