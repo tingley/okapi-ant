@@ -4,13 +4,11 @@ import java.io.File;
 
 import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
-import net.sf.okapi.common.ExecutionContext;
 import net.sf.okapi.common.filters.DefaultFilters;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.plugins.PluginsManager;
 
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.Project;
 import org.apache.tools.ant.Task;
 
 public class PipelineTask extends Task {
@@ -70,6 +68,7 @@ public class PipelineTask extends Task {
         fcMapper.updateCustomConfigurations();
 
         // Load pipeline
+        /*
         ExecutionContext context = new ExecutionContext();
         context.setApplicationName("okapi-ant");
         context.setIsNoPrompt(true);
@@ -78,6 +77,8 @@ public class PipelineTask extends Task {
                 null, context);
         pipelineWrapper.addFromPlugins(plManager);
         return pipelineWrapper;
+        */
+        return null;
     }
 	
 	private String getConfigDirPath(File base) {
@@ -105,10 +106,5 @@ public class PipelineTask extends Task {
 		if (bconfPath == null) {
 			throw new BuildException(BCONF_ATTR + " was not set");
 		}
-	}
-	
-	// XXX remove
-	public static void main(String[] args) {
-		System.out.println("Hello world");
 	}
 }

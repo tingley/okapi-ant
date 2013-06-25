@@ -1,0 +1,59 @@
+<project name="test" default="build" basedir=".">
+
+    <property name="okapi.lib" value="/Applications/okapi-apps_cocoa-macosx-x86_64_0.19/lib/" />
+
+    <path id="okapi.classpath">
+        <fileset dir="${okapi.lib}" includes="**/*.jar" />
+        <fileset dir="target" includes="okapi-ant-1.0-SNAPSHOT.jar" />
+    </path>
+
+    <!-- XXX I can probably use shade to embed okapi and then use 
+         antlib.xml, but that is hacky.  I should probably depend
+         on some OKAPI_HOME-type thing. -->
+
+    <taskdef name="pipeline" 
+        classname="com.spartansoftwareinc.okapi.ant.PipelineTask" 
+        classpathref="okapi.classpath" />
+
+    <taskdef name="mkbconf" 
+        classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask" 
+        classpathref="okapi.classpath" />
+
+    <target name="build">
+        <!--
+        <pipeline bconf="import.bconf" />
+        -->
+
+        <!--
+             The problem is that these custom classes are not being 
+             loaded correctly because they depend on the classpath
+             already including references to the okapi jar.
+
+             The problem is, the ant tasks themselves have dependencies
+             on some portion of okapi (name, core), but not other parts.
+             Unless the ant task depends on all of okapi, the loading
+             won't work.
+
+             So the options seem to be, make the maven dependency on all
+             of okapi explicit, or do some classloader hacking to make
+             things work.
+
+             I may need to look for an okapi classpath and 
+             use it to get/set the context classloader.
+
+             Ok, this is better now.  However, I also need to include
+             the FILES THEMSELVES in the classloader in order to 
+             make things that contain their own dependencies (ie textpool)
+             work.
+
+             One additional thing to be aware of is mismatch between
+             the okapi version used to build this ant task and the one
+             used to build the filter.
+           -->
+        <mkbconf settings="config/pipeline.pln" okapiLib="${okapi.lib}">
+            <fileset dir="config" includes="**/*.jar"/>
+        </mkbconf>
+    </target>
+
+
+</project>
