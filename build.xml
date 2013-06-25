@@ -18,7 +18,7 @@
         classpathref="okapi.classpath" />
 
     <target name="build">
-        <mkbconf settings="config/pipeline.pln" 
+        <mkbconf pipeline="config/pipeline.pln" 
                  bconfPath="output.bconf"
                  filterConfigDir="config"
                  okapiLib="${okapi.lib}">

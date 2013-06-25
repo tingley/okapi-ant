@@ -7,17 +7,12 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import net.sf.okapi.applications.rainbow.Input;
 import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
-import net.sf.okapi.applications.rainbow.pipeline.StepInfo;
-import net.sf.okapi.common.ExecutionContext;
-import net.sf.okapi.common.IParameters;
 import net.sf.okapi.common.filters.DefaultFilters;
-import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.plugins.PluginItem;
 import net.sf.okapi.common.plugins.PluginsManager;
@@ -31,7 +26,7 @@ import org.apache.tools.ant.types.FileSet;
 // XXX Would be nice to allow loading from .pln or .rnb
 public class AssembleBatchConfigTask extends Task {
 	private String okapiLib;
-	private String rnbPath;
+	private String plnPath;
 	private String bconfPath;
 	private String filterConfigPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
@@ -40,8 +35,8 @@ public class AssembleBatchConfigTask extends Task {
 	public void setOkapiLib(String okapiLib) {
 		this.okapiLib = okapiLib;
 	}
-	public void setSettings(String settingsPath) {
-		this.rnbPath = settingsPath;
+	public void setPipeline(String settingsPath) {
+		this.plnPath = settingsPath;
 	}
 	public void setBconfPath(String bconfPath) {
 		this.bconfPath = bconfPath;
@@ -140,13 +135,16 @@ public class AssembleBatchConfigTask extends Task {
 		for (PluginItem plugin : plManager.getList()) {
 			System.out.println("Plugin: " + plugin.getClassName());
 		}
-		
+
+		// Initialize things and load the pipeline.  This will produce
+		// a warning if the pipeline references unavailable steps.
+		// However, it will not break the build.  (Okapi gives me no 
+		// easy way to intercept this problem.)
 		File baseDir = getProject().getBaseDir();
 		FilterConfigurationMapper fcMapper = getFilterMapper(plManager);
-		PipelineWrapper pipelineWrapper = preparePipelineWrapper(baseDir, 
+		PipelineWrapper pipelineWrapper = getPipelineWrapper(baseDir, 
 												fcMapper, plManager);
-		// XXX Hack - expect a raw pln file for now
-        pipelineWrapper.load(rnbPath);
+        pipelineWrapper.load(plnPath);
 
         // Convert filter mappings into dummy input files so the extension
         // map is generated.  Also add any custom configurations while we go.
@@ -191,21 +189,11 @@ public class AssembleBatchConfigTask extends Task {
         return fcMapper;
     }
 	
-	// TODO: refactor with PipelineTask
-	// XXX This probably needs to expand the bconf somewhere temporary so that it can install 
-	// the plugins, etc?
-	// TODO: fcMapper.setCustomConfigurationsDirectory -- point to bconf location
-	private PipelineWrapper preparePipelineWrapper(File baseDir, 
+	private PipelineWrapper getPipelineWrapper(File baseDir, 
 			FilterConfigurationMapper fcMapper, PluginsManager plManager) {
-        // Load pipeline
-        ExecutionContext context = new ExecutionContext();
-        context.setApplicationName("okapi-ant");
-        context.setIsNoPrompt(true);
-        // XXX Techically first path is "appDir", maybe should point to Okapi?
         PipelineWrapper pipelineWrapper = new PipelineWrapper(fcMapper, baseDir.getPath(),
                 plManager, baseDir.getPath(), baseDir.getPath(),
-                null, context);
-
+                null, null);
         pipelineWrapper.addFromPlugins(plManager);
         return pipelineWrapper;
     }
@@ -232,7 +220,7 @@ public class AssembleBatchConfigTask extends Task {
 	private static final String FM_FILTER_ATTR = "filterConfig";
 	
 	private void checkConfiguration() {
-		checkPath(RNB_ATTR, rnbPath);
+		checkPath(RNB_ATTR, plnPath);
 		checkPath(OKAPI_ATTR, okapiLib);
 		checkExists(BCONFPATH_ATTR, bconfPath);
 		for (FilterMapping fm : filterMappings) {
