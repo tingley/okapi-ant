@@ -20,10 +20,11 @@
     <target name="build">
         <mkbconf settings="config/pipeline.pln" 
                  bconfPath="output.bconf"
+                 filterConfigDir="config"
                  okapiLib="${okapi.lib}">
             <fileset dir="config" includes="**/*.jar"/>
-            <filterMapping extension=".xml" filterConfig="okf_dcxrx" />
-            <filterMapping extension="" filterConfig="okf_dcxrx" />
+            <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
+            <filterMapping extension="" filterConfig="okf_dcrx" />
         </mkbconf>
     </target>
 

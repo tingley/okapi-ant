@@ -15,6 +15,7 @@ import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
 import net.sf.okapi.applications.rainbow.pipeline.StepInfo;
 import net.sf.okapi.common.ExecutionContext;
+import net.sf.okapi.common.IParameters;
 import net.sf.okapi.common.filters.DefaultFilters;
 import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
@@ -32,6 +33,7 @@ public class AssembleBatchConfigTask extends Task {
 	private String okapiLib;
 	private String rnbPath;
 	private String bconfPath;
+	private String filterConfigPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	
@@ -43,6 +45,9 @@ public class AssembleBatchConfigTask extends Task {
 	}
 	public void setBconfPath(String bconfPath) {
 		this.bconfPath = bconfPath;
+	}
+	public void setFilterConfigDir(String filterConfigPath) {
+		this.filterConfigPath = filterConfigPath;
 	}
 	public void addFileset(FileSet fileset) {
 		this.filesets.add(fileset);
@@ -144,7 +149,7 @@ public class AssembleBatchConfigTask extends Task {
         pipelineWrapper.load(rnbPath);
 
         // Convert filter mappings into dummy input files so the extension
-        // map is generated.
+        // map is generated.  Also add any custom configurations while we go.
 		List<Input> inputFiles = new ArrayList<Input>();
         for (FilterMapping fm : filterMappings) {
         	Input input = new Input();
@@ -152,6 +157,14 @@ public class AssembleBatchConfigTask extends Task {
         	input.relativePath = "dummy" + fm.extension;
         	// Other fields are unused by BatchConfiguration.exportConfiguration()
         	inputFiles.add(input);
+        	if (fcMapper.getConfiguration(input.filterConfigId) == null) {
+        		System.out.println("Loading " + input.filterConfigId);
+        		fcMapper.addCustomConfiguration(input.filterConfigId);
+        		if (fcMapper.getConfiguration(input.filterConfigId) == null) {
+        			throw new BuildException("Could not load filter configuration '" 
+        									 + input.filterConfigId + "'");
+        		}
+        	}
         }
         
 		// What next?
@@ -170,8 +183,11 @@ public class AssembleBatchConfigTask extends Task {
         FilterConfigurationMapper fcMapper = new FilterConfigurationMapper();
         DefaultFilters.setMappings(fcMapper, false, true);
         fcMapper.addFromPlugins(plManager);
-        //fcMapper.setCustomConfigurationsDirectory(WorkspaceUtils.getConfigDirPath(projId));
-        fcMapper.updateCustomConfigurations();
+        if (filterConfigPath != null) {
+        	System.out.println("Loading custom filter configurations from " + 
+        				       filterConfigPath);
+            fcMapper.setCustomConfigurationsDirectory(filterConfigPath);
+        }
         return fcMapper;
     }
 	
@@ -208,7 +224,7 @@ public class AssembleBatchConfigTask extends Task {
 			return "FilterMapping('" + extension + "' --> " + filterConfig + ")";
 		}
 	}
-
+	
 	private static final String RNB_ATTR = "settings";
 	private static final String OKAPI_ATTR = "okapiLib";
 	private static final String BCONFPATH_ATTR = "bconfPath";
