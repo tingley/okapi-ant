@@ -7,11 +7,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
 import net.sf.okapi.applications.rainbow.pipeline.StepInfo;
+import net.sf.okapi.common.ExecutionContext;
 import net.sf.okapi.common.filters.DefaultFilters;
+import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.plugins.PluginItem;
 import net.sf.okapi.common.plugins.PluginsManager;
@@ -42,7 +45,14 @@ public class AssembleBatchConfigTask extends Task {
 		this.filesets.add(fileset);
 	}
 	
-	PluginsManager createPManager(File tempPluginsDir) throws IOException {
+	/**
+	 * Initialize a plugin manager, using the specified temporary working
+	 * directory.
+	 * @param tempPluginsDir
+	 * @return
+	 * @throws IOException
+	 */
+	PluginsManager createPluginsManager(File tempPluginsDir) throws IOException {
 		// FileSet handling
 		for (FileSet fs : filesets) {
 			DirectoryScanner ds = fs.getDirectoryScanner();
@@ -108,7 +118,7 @@ public class AssembleBatchConfigTask extends Task {
 		PluginsManager plManager = null;
 		try {
 			tempPluginsDir = Util.createTempDir("plugins");
-			plManager = createPManager(tempPluginsDir);
+			plManager = createPluginsManager(tempPluginsDir);
 		}
 		catch (IOException e) {
 			throw new BuildException("Failed to initialize plugins", e);
@@ -119,11 +129,6 @@ public class AssembleBatchConfigTask extends Task {
 		}
 		
 		File baseDir = getProject().getBaseDir();
-		// XXX Need to discover elsewhere as well -- instead of baseDir,
-		// pass plugins directory location
-		// should I handle it as a file?  as a dir?  Need to explore ant task
-		// interface to fileset info.
-		/*
 		PipelineWrapper pipelineWrapper = preparePipelineWrapper(baseDir, plManager);
 		
 		// XXX Hack - expect a raw pln file for now
@@ -131,7 +136,7 @@ public class AssembleBatchConfigTask extends Task {
 		for (StepInfo stepInfo : pipelineWrapper.getSteps()) {
 			System.out.println(stepInfo.name);
 		}
-		*/
+
 		Util.deleteDirectory(tempPluginsDir);
 
 	}
@@ -139,35 +144,26 @@ public class AssembleBatchConfigTask extends Task {
 	// TODO: refactor with PipelineTask
 	// XXX This probably needs to expand the bconf somewhere temporary so that it can install 
 	// the plugins, etc?
+	// TODO: fcMapper.setCustomConfigurationsDirectory -- point to bconf location
 	private PipelineWrapper preparePipelineWrapper(File baseDir, PluginsManager plManager) {
-        // Load local plug-ins                                           
-		//plManager.discover(new File(WorkspaceUtils.getConfigDirPath(projId)), true);
-        
 		// Initialize filter configurations
         FilterConfigurationMapper fcMapper = new FilterConfigurationMapper();
         DefaultFilters.setMappings(fcMapper, false, true);
-        //fcMapper.addFromPlugins(plManager);
+        fcMapper.addFromPlugins(plManager);
         //fcMapper.setCustomConfigurationsDirectory(WorkspaceUtils.getConfigDirPath(projId));
         fcMapper.updateCustomConfigurations();
 
-        // Load pipeline -- TODO: as of M21 we can use execution context here
-        /*
+        // Load pipeline
         ExecutionContext context = new ExecutionContext();
         context.setApplicationName("okapi-ant");
         context.setIsNoPrompt(true);
-        // TODO: fix the paths
+        // XXX Techically first path is "appDir", maybe should point to Okapi?
         PipelineWrapper pipelineWrapper = new PipelineWrapper(fcMapper, baseDir.getPath(),
                 plManager, baseDir.getPath(), baseDir.getPath(),
                 null, context);
-                */
-        /*
-        PipelineWrapper pipelineWrapper = new PipelineWrapper(fcMapper, getConfigDirPath(baseDir),
-                plManager, getInputDirPath(baseDir), getInputDirPath(baseDir),
-                null, context);
-                */
-        //pipelineWrapper.addFromPlugins(plManager);
-        //return pipelineWrapper;
-        return null;
+
+        pipelineWrapper.addFromPlugins(plManager);
+        return pipelineWrapper;
     }
 	
 

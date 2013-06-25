@@ -1,6 +1,6 @@
 <project name="test" default="build" basedir=".">
 
-    <property name="okapi.lib" value="/Applications/okapi-apps_cocoa-macosx-x86_64_0.19/lib/" />
+    <property name="okapi.lib" value="/Applications/okapi-apps_cocoa-macosx-x86_64_0.21/lib/" />
 
     <path id="okapi.classpath">
         <fileset dir="${okapi.lib}" includes="**/*.jar" />
