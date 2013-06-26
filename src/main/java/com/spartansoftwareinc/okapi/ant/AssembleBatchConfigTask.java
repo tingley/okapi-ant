@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.sf.okapi.applications.rainbow.Input;
+import net.sf.okapi.applications.rainbow.Project;
 import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
+import net.sf.okapi.applications.rainbow.lib.LanguageManager;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
 import net.sf.okapi.common.filters.DefaultFilters;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
@@ -27,6 +29,7 @@ import org.apache.tools.ant.types.FileSet;
 public class AssembleBatchConfigTask extends Task {
 	private String okapiLib;
 	private String plnPath;
+	private String rnbPath;
 	private String bconfPath;
 	private String filterConfigPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
@@ -36,6 +39,9 @@ public class AssembleBatchConfigTask extends Task {
 	
 	public void setOkapiLib(String okapiLib) {
 		this.okapiLib = okapiLib;
+	}
+	public void setSettings(String settingsPath) {
+		this.rnbPath = settingsPath;
 	}
 	public void setPipeline(String settingsPath) {
 		this.plnPath = settingsPath;
@@ -88,7 +94,7 @@ public class AssembleBatchConfigTask extends Task {
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try {
 			installNewClassLoader(getClass().getClassLoader());
-			runPlugin();
+			assembleBatchConfig();
 		}
 		finally {
 			if (tempPluginsDir != null) {
@@ -119,7 +125,7 @@ public class AssembleBatchConfigTask extends Task {
 		Thread.currentThread().setContextClassLoader(classLoader);
 	}
 	
-	public void runPlugin() {
+	public void assembleBatchConfig() {
 		checkConfiguration();
 
 		// PManager.discover() doesn't work on individual
@@ -138,6 +144,42 @@ public class AssembleBatchConfigTask extends Task {
 			System.out.println("Plugin: " + plugin.getClassName());
 		}
 
+		if (rnbPath != null) {
+			loadFromSettings(rnbPath, plManager);
+		}
+		else {
+			loadFromPipeline(plnPath, plManager);
+		}
+
+	}
+	
+	/**
+	 * Load from an rnb file.
+	 * @throws Exception 
+	 */
+	void loadFromSettings(String rnbPath, PluginsManager plManager) {
+		LanguageManager lm = new LanguageManager(); // ???
+		Project project = new Project(lm);
+		try {
+			project.load(rnbPath);
+		}
+		catch (Exception e) {
+			throw new BuildException("Couldn't load project from " + rnbPath, e);
+		}
+		
+		// Pipeline
+		File baseDir = getProject().getBaseDir();
+		FilterConfigurationMapper fcMapper = getFilterMapper(plManager);
+		PipelineWrapper pipelineWrapper = getPipelineWrapper(baseDir, fcMapper, plManager);
+		String pln = project.getUtilityParameters("currentProjectPipeline");
+		pipelineWrapper.loadFromStringStorageOrReset(pln);
+		
+		BatchConfiguration bconfig = new BatchConfiguration();
+		System.out.println("Writing batch configuration to " + bconfPath);
+		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, project.getList(0));
+	}
+	
+	void loadFromPipeline(String plnPath, PluginsManager plManager) {
 		// Initialize things and load the pipeline.  This will produce
 		// a warning if the pipeline references unavailable steps.
 		// However, it will not break the build.  (Okapi gives me no 
@@ -210,13 +252,21 @@ public class AssembleBatchConfigTask extends Task {
 	}
 	
 	private static final String RNB_ATTR = "settings";
+	private static final String PLN_ATTR = "pipeline";
 	private static final String OKAPI_ATTR = "okapiLib";
 	private static final String BCONFPATH_ATTR = "bconfPath";
 	private static final String FM_EXTENSION_ATTR = "extension";
 	private static final String FM_FILTER_ATTR = "filterConfig";
 	
 	private void checkConfiguration() {
-		checkPath(RNB_ATTR, plnPath);
+		if (plnPath == null && rnbPath == null) {
+			throw new BuildException("One of " + PLN_ATTR + " and " +
+									 RNB_ATTR + " must be set.");
+		}
+		if (plnPath != null && rnbPath != null) {
+			throw new BuildException("Only one of " + PLN_ATTR + " or " +
+					 RNB_ATTR + " may be set.");
+		}
 		checkPath(OKAPI_ATTR, okapiLib);
 		checkExists(BCONFPATH_ATTR, bconfPath);
 		for (FilterMapping fm : filterMappings) {
