@@ -2,6 +2,8 @@
 
     <property name="okapi.lib" value="/Applications/okapi-apps_cocoa-macosx-x86_64_0.21/lib/" />
 
+    <!-- The task needs both its own code and an okapi installation to 
+       - load. -->
     <path id="okapi.classpath">
         <fileset dir="${okapi.lib}" includes="**/*.jar" />
         <fileset dir="target" includes="okapi-ant-1.0-SNAPSHOT.jar" />
@@ -23,8 +25,12 @@
                  filterConfigDir="config"
                  okapiLib="${okapi.lib}">
             <fileset dir="config" includes="**/*.jar"/>
+            <!-- custom filter configuration; the task will look in
+               - ${filterConfigDir} to find it. -->
             <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
-            <filterMapping extension="" filterConfig="okf_dcrx" />
+            <!-- filter configuration from a custom filter contained in a
+               - plugin -->
+            <filterMapping extension="" filterConfig="okf_foo" />
         </mkbconf>
     </target>
 
