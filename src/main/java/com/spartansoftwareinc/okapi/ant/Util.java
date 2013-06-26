@@ -54,4 +54,25 @@ public class Util {
 		is.close();
 		return dest;
 	}
+	
+	static void checkExists(String name, String value) {
+		if (value == null) {
+			throw new BuildException("Required attribute '" + name + "' was not set");
+		}
+	}
+	static void checkPath(String name, String value) {
+		checkExists(name, value);
+		File f = new File(value);
+		if (!f.exists()) {
+			throw new BuildException("Invalid " + name + " value: " + 
+					value);
+		}
+	}
+	static void checkEmptyDirectory(String name, String value) {
+		File f = new File(value);
+		if (!f.isDirectory() || f.list().length > 0) {
+			throw new BuildException(name + " must refer to an empty directory");
+		}
+	}
 }
+	

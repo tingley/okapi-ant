@@ -25,8 +25,7 @@ import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
 
-// XXX Would be nice to allow loading from .pln or .rnb
-public class AssembleBatchConfigTask extends Task {
+public class AssembleBatchConfigTask extends BasePipelineTask {
 	private String okapiLib;
 	private String plnPath;
 	private String rnbPath;
@@ -168,9 +167,8 @@ public class AssembleBatchConfigTask extends Task {
 		}
 		
 		// Pipeline
-		File baseDir = getProject().getBaseDir();
-		FilterConfigurationMapper fcMapper = getFilterMapper(plManager);
-		PipelineWrapper pipelineWrapper = getPipelineWrapper(baseDir, fcMapper, plManager);
+		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigPath, plManager);
+		PipelineWrapper pipelineWrapper = getPipelineWrapper(getProject().getBaseDir(), fcMapper, plManager);
 		String pln = project.getUtilityParameters("currentProjectPipeline");
 		pipelineWrapper.loadFromStringStorageOrReset(pln);
 		
@@ -184,9 +182,8 @@ public class AssembleBatchConfigTask extends Task {
 		// a warning if the pipeline references unavailable steps.
 		// However, it will not break the build.  (Okapi gives me no 
 		// easy way to intercept this problem.)
-		File baseDir = getProject().getBaseDir();
-		FilterConfigurationMapper fcMapper = getFilterMapper(plManager);
-		PipelineWrapper pipelineWrapper = getPipelineWrapper(baseDir, 
+		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigPath, plManager);
+		PipelineWrapper pipelineWrapper = getPipelineWrapper(getProject().getBaseDir(), 
 												fcMapper, plManager);
         pipelineWrapper.load(plnPath);
 
@@ -213,28 +210,6 @@ public class AssembleBatchConfigTask extends Task {
 		System.out.println("Writing batch configuration to " + bconfPath);
 		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
 	}
-	
-	private FilterConfigurationMapper getFilterMapper(PluginsManager plManager) {
-		// Initialize filter configurations
-        FilterConfigurationMapper fcMapper = new FilterConfigurationMapper();
-        DefaultFilters.setMappings(fcMapper, false, true);
-        fcMapper.addFromPlugins(plManager);
-        if (filterConfigPath != null) {
-        	System.out.println("Loading custom filter configurations from " + 
-        				       filterConfigPath);
-            fcMapper.setCustomConfigurationsDirectory(filterConfigPath);
-        }
-        return fcMapper;
-    }
-	
-	private PipelineWrapper getPipelineWrapper(File baseDir, 
-			FilterConfigurationMapper fcMapper, PluginsManager plManager) {
-        PipelineWrapper pipelineWrapper = new PipelineWrapper(fcMapper, baseDir.getPath(),
-                plManager, baseDir.getPath(), baseDir.getPath(),
-                null, null);
-        pipelineWrapper.addFromPlugins(plManager);
-        return pipelineWrapper;
-    }
 	
 	public static class FilterMapping {
 		public FilterMapping() {}
@@ -267,30 +242,16 @@ public class AssembleBatchConfigTask extends Task {
 			throw new BuildException("Only one of " + PLN_ATTR + " or " +
 					 RNB_ATTR + " may be set.");
 		}
-		checkPath(OKAPI_ATTR, okapiLib);
-		checkExists(BCONFPATH_ATTR, bconfPath);
+		Util.checkPath(OKAPI_ATTR, okapiLib);
+		Util.checkExists(BCONFPATH_ATTR, bconfPath);
 		for (FilterMapping fm : filterMappings) {
 			checkFilterMapping(fm);
 		}
 	}
 
 	private void checkFilterMapping(FilterMapping fm) {
-		checkExists(FM_EXTENSION_ATTR, fm.extension);
-		checkExists(FM_FILTER_ATTR, fm.filterConfig);
-	}
-	
-	private void checkExists(String name, String value) {
-		if (value == null) {
-			throw new BuildException("Required attribute '" + name + "' was not set");
-		}
-	}
-	private void checkPath(String name, String value) {
-		checkExists(name, value);
-		File f = new File(value);
-		if (!f.exists()) {
-			throw new BuildException("Invalid " + name + " value: " + 
-					value);
-		}
+		Util.checkExists(FM_EXTENSION_ATTR, fm.extension);
+		Util.checkExists(FM_FILTER_ATTR, fm.filterConfig);
 	}
 
 }

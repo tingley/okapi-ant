@@ -18,6 +18,9 @@
     <taskdef name="mkbconf" 
         classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask" 
         classpathref="okapi.classpath" />
+    <taskdef name="installbconf" 
+        classname="com.spartansoftwareinc.okapi.ant.InstallBatchConfigTask" 
+        classpathref="okapi.classpath" />
 
     <target name="build">
         <!-- First method: from explicit pipeline -->
@@ -30,9 +33,13 @@
                - ${filterConfigDir} to find it. -->
             <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
             <!-- filter configuration from a custom filter contained in a
-               - plugin -->
+               - plugin 
             <filterMapping extension="" filterConfig="okf_foo" />
+           -->
         </mkbconf>
+        <delete dir="t" failonerror="no"/>
+        <mkdir dir="t"/>
+        <installbconf bconf="output.bconf" dir="t" />
         <!-- Second method: from rainbow settings (.rnb).  This will
              include both the pipeline from the RNB and any non-default
              filter mappings it defines. -->
@@ -40,7 +47,9 @@
                  bconfPath="output2.bconf"
                  filterConfigDir="config"
                  okapiLib="${okapi.lib}">
+                 <!--
             <fileset dir="config" includes="**/*.jar"/>
+            -->
             <!-- 
                - filter configs are imported from the rnb file; these are 
                - then added.
@@ -48,6 +57,9 @@
             <filterMapping extension="" filterConfig="okf_foo" />
             -->
         </mkbconf>
+        <delete dir="t2" failonerror="no"/>
+        <mkdir dir="t2"/>
+        <installbconf bconf="output2.bconf" dir="t2" />
     </target>
 
 
