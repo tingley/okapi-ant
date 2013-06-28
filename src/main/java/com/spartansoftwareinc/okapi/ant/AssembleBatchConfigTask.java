@@ -7,18 +7,20 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import net.sf.okapi.applications.rainbow.Input;
 import net.sf.okapi.applications.rainbow.Project;
 import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
 import net.sf.okapi.applications.rainbow.lib.LanguageManager;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
+import net.sf.okapi.common.Util;
 import net.sf.okapi.common.filters.DefaultFilters;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.plugins.PluginItem;
 import net.sf.okapi.common.plugins.PluginsManager;
-//import net.sf.okapi.common.plugins.PManager;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -75,7 +77,7 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 			File baseDir = ds.getBasedir();
 			for (String filename : ds.getIncludedFiles()) {
 				File f = new File(baseDir, filename);
-				Util.copyJarToDirectory(tempPluginsDir, f, false);
+				TaskUtil.copyJarToDirectory(tempPluginsDir, f, false);
 			}
 		}
 		PluginsManager plManager = new PluginsManager();
@@ -97,7 +99,7 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		}
 		finally {
 			if (tempPluginsDir != null) {
-				Util.deleteDirectory(tempPluginsDir);
+				TaskUtil.deleteDirectory(tempPluginsDir);
 			}
 			Thread.currentThread().setContextClassLoader(oldClassLoader);
 		}
@@ -132,7 +134,7 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		// fileset to a temporary directory.
 		PluginsManager plManager = null;
 		try {
-			tempPluginsDir = Util.createTempDir("plugins");
+			tempPluginsDir = TaskUtil.createTempDir("plugins");
 			plManager = createPluginsManager(tempPluginsDir);
 		}
 		catch (IOException e) {
@@ -172,9 +174,14 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		String pln = project.getUtilityParameters("currentProjectPipeline");
 		pipelineWrapper.loadFromStringStorageOrReset(pln);
 		
+		// Allow <filterMapping> elements to override the contents of the settings.
+		// BatchConfiguration.exportConfiguration() always takes the first configuration
+		// it finds for a given extension, so we just list the overrides first.
+		List<Input> inputFiles = processFilterMappings(fcMapper);
+		inputFiles.addAll(project.getList(0));
 		BatchConfiguration bconfig = new BatchConfiguration();
 		System.out.println("Writing batch configuration to " + bconfPath);
-		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, project.getList(0));
+		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
 	}
 	
 	void loadFromPipeline(String plnPath, PluginsManager plManager) {
@@ -186,16 +193,21 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		PipelineWrapper pipelineWrapper = getPipelineWrapper(getProject().getBaseDir(), 
 												fcMapper, plManager);
         pipelineWrapper.load(plnPath);
-
-        // Convert filter mappings into dummy input files so the extension
+        List<Input> inputFiles = processFilterMappings(fcMapper);	
+        
+		BatchConfiguration bconfig = new BatchConfiguration();
+		System.out.println("Writing batch configuration to " + bconfPath);
+		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
+	}
+	
+	List<Input> processFilterMappings(FilterConfigurationMapper fcMapper) {
+		// Convert filter mappings into dummy input files so the extension
         // map is generated.  Also add any custom configurations while we go.
 		List<Input> inputFiles = new ArrayList<Input>();
         for (FilterMapping fm : filterMappings) {
-        	Input input = new Input();
-        	input.filterConfigId = fm.filterConfig;
-        	input.relativePath = "dummy" + fm.extension;
-        	// Other fields are unused by BatchConfiguration.exportConfiguration()
+        	Input input = TaskUtil.createInput(fm.extension, fm.filterConfig);
         	inputFiles.add(input);
+        	System.out.println("Added filter mapping " + fm.extension + " --> " + fm.filterConfig);
         	if (fcMapper.getConfiguration(input.filterConfigId) == null) {
         		System.out.println("Loading " + input.filterConfigId);
         		fcMapper.addCustomConfiguration(input.filterConfigId);
@@ -205,10 +217,7 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
         		}
         	}
         }
-        
-		BatchConfiguration bconfig = new BatchConfiguration();
-		System.out.println("Writing batch configuration to " + bconfPath);
-		bconfig.exportConfiguration(bconfPath, pipelineWrapper, fcMapper, inputFiles);
+        return inputFiles;
 	}
 	
 	public static class FilterMapping {
@@ -242,16 +251,16 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 			throw new BuildException("Only one of " + PLN_ATTR + " or " +
 					 RNB_ATTR + " may be set.");
 		}
-		Util.checkPath(OKAPI_ATTR, okapiLib);
-		Util.checkExists(BCONFPATH_ATTR, bconfPath);
+		TaskUtil.checkPath(OKAPI_ATTR, okapiLib);
+		TaskUtil.checkExists(BCONFPATH_ATTR, bconfPath);
 		for (FilterMapping fm : filterMappings) {
 			checkFilterMapping(fm);
 		}
 	}
 
 	private void checkFilterMapping(FilterMapping fm) {
-		Util.checkExists(FM_EXTENSION_ATTR, fm.extension);
-		Util.checkExists(FM_FILTER_ATTR, fm.filterConfig);
+		TaskUtil.checkExists(FM_EXTENSION_ATTR, fm.extension);
+		TaskUtil.checkExists(FM_FILTER_ATTR, fm.filterConfig);
 	}
 
 }

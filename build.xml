@@ -47,8 +47,8 @@
                - filter configs are imported from the rnb file; these are 
                - then added.
             <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
-            <filterMapping extension="" filterConfig="okf_foo" />
             -->
+            <filterMapping extension="" filterConfig="okf_xml" />
         </okapi:mkbconf>
         <delete dir="t2" failonerror="no"/>
         <mkdir dir="t2"/>

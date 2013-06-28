@@ -9,10 +9,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import net.sf.okapi.applications.rainbow.Input;
+
 import org.apache.tools.ant.BuildException;
 
-public class Util {
+public class TaskUtil {
 
+	public static Input createInput(String extension, String filterConfigId) {
+    	// Other fields are unused by BatchConfiguration.exportConfiguration()
+    	Input input = new Input();
+    	input.filterConfigId = filterConfigId;
+    	input.relativePath = "dummy" + extension;
+    	return input;
+	}
+	
 	public static File createTempDir(String prefix) throws IOException {
 		File f = File.createTempFile(prefix, "");
 		

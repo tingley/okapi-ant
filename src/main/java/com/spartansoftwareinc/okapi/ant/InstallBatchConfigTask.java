@@ -35,8 +35,8 @@ public class InstallBatchConfigTask extends BasePipelineTask {
 	private static final String DIR_ATTR = "dir";
 	
 	private void checkConfiguration() {
-		Util.checkExists(BCONF_ATTR, bconfPath);
-		Util.checkExists(DIR_ATTR, directoryPath);
-		Util.checkEmptyDirectory(DIR_ATTR, directoryPath);
+		TaskUtil.checkExists(BCONF_ATTR, bconfPath);
+		TaskUtil.checkExists(DIR_ATTR, directoryPath);
+		TaskUtil.checkEmptyDirectory(DIR_ATTR, directoryPath);
 	}
 }
