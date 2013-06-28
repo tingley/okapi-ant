@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<antlib>
+    <taskdef name="mkbconf" 
+        classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask"/>
+    <taskdef name="installbconf" 
+        classname="com.spartansoftwareinc.okapi.ant.InstallBatchConfigTask"/>
+</antlib>
