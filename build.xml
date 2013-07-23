@@ -19,8 +19,7 @@
         <!-- First method: from explicit pipeline -->
         <okapi:mkbconf pipeline="config/pipeline.pln" 
                  bconfPath="output.bconf"
-                 filterConfigDir="config"
-                 okapiLib="${okapi.lib}">
+                 filterConfigDir="config">
             <fileset dir="config" includes="**/*.jar"/>
             <!-- custom filter configuration; the task will look in
                - ${filterConfigDir} to find it. -->
@@ -38,8 +37,7 @@
              filter mappings it defines. -->
         <okapi:mkbconf settings="config/settings.rnb"
                  bconfPath="output2.bconf"
-                 filterConfigDir="config"
-                 okapiLib="${okapi.lib}">
+                 filterConfigDir="config">
                  <!--
             <fileset dir="config" includes="**/*.jar"/>
             -->

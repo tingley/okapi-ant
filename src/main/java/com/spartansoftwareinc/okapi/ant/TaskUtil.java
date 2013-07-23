@@ -78,8 +78,13 @@ public class TaskUtil {
 					value);
 		}
 	}
-	static void checkEmptyDirectory(String name, String value) {
+	static void checkEmptyDirectory(String name, String value, boolean createIfMissing) {
 		File f = new File(value);
+		if (!f.exists() && createIfMissing) {
+		    if (!f.mkdirs()) {
+		        throw new BuildException("Couldn't create directory " + name);
+		    }
+		}
 		if (!f.isDirectory() || f.list().length > 0) {
 			throw new BuildException(name + " must refer to an empty directory");
 		}
