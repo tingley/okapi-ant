@@ -3,9 +3,6 @@ package com.spartansoftwareinc.okapi.ant;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,7 +25,6 @@ import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
 
 public class AssembleBatchConfigTask extends BasePipelineTask {
-	private String okapiLib;
 	private String plnPath;
 	private String rnbPath;
 	private String bconfPath;
@@ -38,9 +34,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 	
 	private File tempPluginsDir = null;
 	
-	public void setOkapiLib(String okapiLib) {
-		this.okapiLib = okapiLib;
-	}
 	public void setSettings(String settingsPath) {
 		this.rnbPath = settingsPath;
 	}
@@ -87,14 +80,14 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 	
 	public void execute() {
 		// We need to save and restore the context class loader, because
-		// Okapi's PluginsManager uses the CCL to load plugins.  Therefore
-		// we need to temporarily replace the CCL with the same classloader 
-		// as the one used to load Okapi as part of instantiating this task,
-		// so that we don't end up with odd situations where plugins can't be
-		// detected.
+		// Okapi's PluginsManager uses the CCL as the basis for the class
+		// loader it creates to load plugins.  Ant's CCL does not contain
+		// the classes used to load this task.  Therefore we need to
+		// temporarily replace the CCL with the classloader this task was
+		// loaded with, which includes all the okapi classes.
 		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
 		try {
-			installNewClassLoader(getClass().getClassLoader());
+			Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 			assembleBatchConfig();
 		}
 		finally {
@@ -105,27 +98,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		}
 	}
 
-	void installNewClassLoader(ClassLoader parentClassLoader) {
-		File dir = new File(okapiLib);
-		File[] jars = dir.listFiles(new FilenameFilter() {
-			public boolean accept(File dir, String name) {
-				return name.toLowerCase().endsWith(".jar");
-			}
-		});
-		List<URL> urls = new ArrayList<URL>();
-		for (File j : jars) {
-			try {
-				urls.add(j.toURI().toURL());
-			}
-			catch (MalformedURLException e) {
-				throw new BuildException(e);
-			}
-		}
-		URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]),
-													    parentClassLoader);
-		Thread.currentThread().setContextClassLoader(classLoader);
-	}
-	
 	public void assembleBatchConfig() {
 		checkConfiguration();
 
@@ -237,7 +209,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 	
 	private static final String RNB_ATTR = "settings";
 	private static final String PLN_ATTR = "pipeline";
-	private static final String OKAPI_ATTR = "okapiLib";
 	private static final String BCONFPATH_ATTR = "bconfPath";
 	private static final String FM_EXTENSION_ATTR = "extension";
 	private static final String FM_FILTER_ATTR = "filterConfig";
@@ -251,7 +222,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 			throw new BuildException("Only one of " + PLN_ATTR + " or " +
 					 RNB_ATTR + " may be set.");
 		}
-		TaskUtil.checkPath(OKAPI_ATTR, okapiLib);
 		TaskUtil.checkExists(BCONFPATH_ATTR, bconfPath);
 		for (FilterMapping fm : filterMappings) {
 			checkFilterMapping(fm);
