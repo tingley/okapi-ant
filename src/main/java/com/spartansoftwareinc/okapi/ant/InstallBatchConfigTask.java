@@ -15,9 +15,8 @@ public class InstallBatchConfigTask extends BasePipelineTask {
 		this.directoryPath = dirPath;
 	}
 	
-	public void execute() {
-		checkConfiguration();
-		
+	@Override
+	void executeWithOkapiClassloader() {
 		PluginsManager plManager = new PluginsManager();
 		// HACK: We have to initialize the PluginsManager -somewhere-, because otherwise 
 		// the PipelineWrapper constructor will crash.  This is because the PluginsManager
@@ -34,7 +33,8 @@ public class InstallBatchConfigTask extends BasePipelineTask {
 	private static final String BCONF_ATTR = "bconf";
 	private static final String DIR_ATTR = "dir";
 	
-	private void checkConfiguration() {
+	@Override
+	void checkConfiguration() {
 		TaskUtil.checkExists(BCONF_ATTR, bconfPath);
 		TaskUtil.checkExists(DIR_ATTR, directoryPath);
 		TaskUtil.checkEmptyDirectory(DIR_ATTR, directoryPath, true);

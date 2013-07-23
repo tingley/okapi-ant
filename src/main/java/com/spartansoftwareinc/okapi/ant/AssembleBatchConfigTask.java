@@ -1,27 +1,20 @@
 package com.spartansoftwareinc.okapi.ant;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-
 import net.sf.okapi.applications.rainbow.Input;
 import net.sf.okapi.applications.rainbow.Project;
 import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
 import net.sf.okapi.applications.rainbow.lib.LanguageManager;
 import net.sf.okapi.applications.rainbow.pipeline.PipelineWrapper;
-import net.sf.okapi.common.Util;
-import net.sf.okapi.common.filters.DefaultFilters;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.plugins.PluginItem;
 import net.sf.okapi.common.plugins.PluginsManager;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
-import org.apache.tools.ant.Task;
 import org.apache.tools.ant.types.FileSet;
 
 public class AssembleBatchConfigTask extends BasePipelineTask {
@@ -77,30 +70,20 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		plManager.discover(tempPluginsDir, false);
 		return plManager;
 	}
-	
-	public void execute() {
-		// We need to save and restore the context class loader, because
-		// Okapi's PluginsManager uses the CCL as the basis for the class
-		// loader it creates to load plugins.  Ant's CCL does not contain
-		// the classes used to load this task.  Therefore we need to
-		// temporarily replace the CCL with the classloader this task was
-		// loaded with, which includes all the okapi classes.
-		ClassLoader oldClassLoader = Thread.currentThread().getContextClassLoader();
-		try {
-			Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-			assembleBatchConfig();
-		}
-		finally {
-			if (tempPluginsDir != null) {
-				TaskUtil.deleteDirectory(tempPluginsDir);
-			}
-			Thread.currentThread().setContextClassLoader(oldClassLoader);
-		}
+
+	@Override
+	void executeWithOkapiClassloader() {
+	    try {
+	        assembleBatchConfig();
+	    }
+	    finally {
+    	    if (tempPluginsDir != null) {
+                TaskUtil.deleteDirectory(tempPluginsDir);
+            }
+	    }
 	}
-
-	public void assembleBatchConfig() {
-		checkConfiguration();
-
+	
+	void assembleBatchConfig() {
 		// PManager.discover() doesn't work on individual
 		// files, so I need to copy the contents of the task's
 		// fileset to a temporary directory.
@@ -123,7 +106,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		else {
 			loadFromPipeline(plnPath, plManager);
 		}
-
 	}
 	
 	/**
@@ -213,7 +195,8 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 	private static final String FM_EXTENSION_ATTR = "extension";
 	private static final String FM_FILTER_ATTR = "filterConfig";
 	
-	private void checkConfiguration() {
+	@Override
+	void checkConfiguration() {
 		if (plnPath == null && rnbPath == null) {
 			throw new BuildException("One of " + PLN_ATTR + " and " +
 									 RNB_ATTR + " must be set.");
