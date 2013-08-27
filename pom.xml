@@ -23,6 +23,13 @@
     </repository>
   </repositories>
 
+  <distributionManagement>
+    <repository>
+      <id>spartan</id>
+      <url>scpexe://ec2.spartansoftwareinc.com/srv/maven_repository</url>
+    </repository>
+  </distributionManagement>
+
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -107,5 +114,12 @@
         </configuration>
       </plugin>
     </plugins>
+
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh-external</artifactId>
+      </extension>
+    </extensions>
   </build>
 </project>
