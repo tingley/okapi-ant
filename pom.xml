@@ -2,7 +2,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.spartansoftwareinc.okapi.ant</groupId>
+  <groupId>com.spartansoftwareinc.okapi</groupId>
   <artifactId>okapi-ant</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -22,6 +22,13 @@
       <url>http://repository-okapi.forge.cloudbees.com/release/</url>
     </repository>
   </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>spartan</id>
+      <url>scpexe://ec2.spartansoftwareinc.com/srv/maven_repository</url>
+    </repository>
+  </distributionManagement>
 
   <dependencies>
     <dependency>
@@ -107,5 +114,12 @@
         </configuration>
       </plugin>
     </plugins>
+
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh-external</artifactId>
+      </extension>
+    </extensions>
   </build>
 </project>
