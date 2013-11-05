@@ -48,7 +48,9 @@ public abstract class BasePipelineTask extends Task {
 		// Initialize filter configurations
         FilterConfigurationMapper fcMapper = new FilterConfigurationMapper();
         DefaultFilters.setMappings(fcMapper, false, true);
-        fcMapper.addFromPlugins(plManager);
+        if (plManager != null) {
+        	fcMapper.addFromPlugins(plManager);
+        }
         if (filterConfigPath != null) {
         	System.out.println("Loading custom filter configurations from " + 
         				       filterConfigPath);
