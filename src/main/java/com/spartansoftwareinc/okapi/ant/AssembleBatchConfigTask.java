@@ -174,21 +174,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
         return inputFiles;
 	}
 	
-	public static class FilterMapping {
-		public FilterMapping() {}
-		String extension;
-		String filterConfig;
-		public void setExtension(String extension) {
-			this.extension = extension;
-		}
-		public void setFilterConfig(String filterConfig) {
-			this.filterConfig = filterConfig;
-		}
-		public String toString() {
-			return "FilterMapping('" + extension + "' --> " + filterConfig + ")";
-		}
-	}
-	
 	private static final String RNB_ATTR = "settings";
 	private static final String PLN_ATTR = "pipeline";
 	private static final String BCONFPATH_ATTR = "bconfPath";
