@@ -11,6 +11,7 @@ import java.util.Set;
 
 import net.sf.okapi.common.LocaleId;
 import net.sf.okapi.common.Util;
+import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.pipelinedriver.PipelineDriver;
 import net.sf.okapi.common.resource.RawDocument;
@@ -18,7 +19,6 @@ import net.sf.okapi.steps.common.FilterEventsToRawDocumentStep;
 import net.sf.okapi.steps.common.RawDocumentToFilterEventsStep;
 import net.sf.okapi.steps.generatesimpletm.GenerateSimpleTmStep;
 import net.sf.okapi.steps.leveraging.LeveragingStep;
-import net.sf.okapi.steps.leveraging.Parameters;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -31,6 +31,7 @@ public class TranslateTask extends BasePipelineTask {
 	private String tmdir = "l10n";
 	private String filterConfigDir = null;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
+	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	private String srcLang = null;
 	private Set<LocaleId> targetLocales = new HashSet<LocaleId>();
 	
@@ -42,6 +43,11 @@ public class TranslateTask extends BasePipelineTask {
 	}
 	public void addFileset(FileSet fileset) {
 		this.filesets.add(fileset);
+	}
+	public FilterMapping createFilterMapping() {
+		FilterMapping fm = new FilterMapping();
+		filterMappings.add(fm);
+		return fm;
 	}
 	public void setFilterConfigDir(String filterConfigDir) {
 		this.filterConfigDir = filterConfigDir;
@@ -60,7 +66,7 @@ public class TranslateTask extends BasePipelineTask {
 		
 		File tmpDb = createTempDb();
 		
-		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
+		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);		
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(fcMapper);
 		driver.addStep(new RawDocumentToFilterEventsStep());
@@ -68,7 +74,8 @@ public class TranslateTask extends BasePipelineTask {
 		LeveragingStep leverage = new LeveragingStep();
 		driver.addStep(leverage);
 		
-		Parameters p = (Parameters) leverage.getParameters();
+		net.sf.okapi.steps.leveraging.Parameters p =
+				(net.sf.okapi.steps.leveraging.Parameters) leverage.getParameters();
 		p.setResourceClassName("net.sf.okapi.connectors.simpletm.SimpleTMConnector");
 		p.setResourceParameters("dbPath=" + tmpDb.getAbsolutePath());
 		p.setFillTarget(true);
@@ -83,8 +90,16 @@ public class TranslateTask extends BasePipelineTask {
 			for (String filename : ds.getIncludedFiles()) {
 				File f = new File(baseDir, filename);
 				URI inUri = Util.toURI(f.getAbsolutePath());
-				RawDocument rawDoc = new RawDocument(inUri, "utf-8", new LocaleId("en-us"));
 				for (LocaleId locale : targetLocales) {
+					String ext = splitExt(f)[1];
+					String filterId = getMappedFilter(ext);
+					if (filterId == null) {
+						FilterConfiguration fc = fcMapper.getDefaultConfigurationFromExtension(ext);
+						if (fc != null) {
+							filterId = fc.configId;
+						}
+					}
+					RawDocument rawDoc = new RawDocument(inUri, "utf-8", new LocaleId(srcLang), locale, filterId);
 					URI outUri = getOutUri(f, locale);
 					driver.addBatchItem(rawDoc, outUri, "utf-8");
 				}
@@ -93,10 +108,21 @@ public class TranslateTask extends BasePipelineTask {
 		}
 		
 		driver.processBatch();
+		
+		tmpDb.delete();
+	}
+	
+	private String getMappedFilter(String ext) {
+		for (FilterMapping fm : filterMappings) {
+			if (fm.extension.equalsIgnoreCase(ext)) {
+				return fm.filterConfig;
+			}
+		}
+		return null;
 	}
 	
 	private File createTempDb() {
-		FilterConfigurationMapper fcMapper = getFilterMapper(null, null);
+		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(fcMapper);
 		driver.addStep(new RawDocumentToFilterEventsStep());
@@ -117,14 +143,16 @@ public class TranslateTask extends BasePipelineTask {
 		
 		File tmpDb = null;
 		try {
-			tmpDb = File.createTempFile("okapi", "simpTm");
+			tmpDb = File.createTempFile("okapi-ant", ".h2.db");
 		} catch (IOException e) {
 			throw new RuntimeException("Could not create temp file for SimpleTM");
 		}
 		
 		GenerateSimpleTmStep genTmStep = new GenerateSimpleTmStep();
 		driver.addStep(genTmStep);
-		genTmStep.getParameters().setPath(tmpDb.getAbsolutePath());
+		net.sf.okapi.steps.generatesimpletm.Parameters p =
+				(net.sf.okapi.steps.generatesimpletm.Parameters) genTmStep.getParameters();
+		p.setTmPath(tmpDb.getAbsolutePath());
 		
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
 		
@@ -136,7 +164,9 @@ public class TranslateTask extends BasePipelineTask {
 		};
 		
 		for (File f : tmDir.listFiles(filter)) {
-			RawDocument rawDoc = new RawDocument(f.toURI(), "utf-8", new LocaleId("en-us"));
+			String trgLang = f.getName().substring(0, f.getName().indexOf("."));
+			RawDocument rawDoc = new RawDocument(f.toURI(), "utf-8", new LocaleId(srcLang),
+					new LocaleId(trgLang), "okf_tmx");
 			driver.addBatchItem(rawDoc, f.toURI(), "utf-8");
 		}
 		
@@ -145,14 +175,21 @@ public class TranslateTask extends BasePipelineTask {
 		return tmpDb;
 	}
 
-	
-	private URI getOutUri(File file, LocaleId locale) {
+	private String[] splitExt(File file) {
 		String name = file.getName();
 		int lastDot = name.lastIndexOf('.');
+		if (lastDot == -1) {
+			return new String[] { name, "" };
+		}
 		String basename = name.substring(0, lastDot);
 		String ext = name.substring(lastDot);
+		return new String[] { basename, ext };
+	}
+	
+	private URI getOutUri(File file, LocaleId locale) {
+		String[] split = splitExt(file);
 		File outFile = new File(file.getParentFile(),
-				basename + "_" + locale.toPOSIXLocaleId() + ext);
+				split[0] + "_" + locale.toPOSIXLocaleId() + split[1]);
 		return outFile.toURI();
 	}
 }
