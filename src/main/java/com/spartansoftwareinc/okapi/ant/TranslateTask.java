@@ -65,6 +65,12 @@ public class TranslateTask extends BasePipelineTask {
 		if (!tmDir.isDirectory()) {
 			throw new BuildException("tm dir not present");
 		}
+		if (filesets.isEmpty()) {
+			throw new BuildException("No files specified to translate");
+		}
+		if (srcLang == null) {
+			throw new BuildException("Source language must be set");
+		}
 	}
 
 	@Override
