@@ -63,7 +63,7 @@ public abstract class BasePipelineTask extends Task {
 			FilterConfigurationMapper fcMapper, PluginsManager plManager) {
         PipelineWrapper pipelineWrapper = new PipelineWrapper(fcMapper, baseDir.getPath(),
                 plManager, baseDir.getPath(), baseDir.getPath(),
-                null, null);
+                null, null, null);
         pipelineWrapper.addFromPlugins(plManager);
         return pipelineWrapper;
     }
