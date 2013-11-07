@@ -76,14 +76,19 @@ public class TranslateTask extends BasePipelineTask {
 	@Override
 	void executeWithOkapiClassloader() {
 		
+		// Make a DB for each locale represented by a TMX in tmdir.
 		Map<LocaleId, File> tmpDbs = createTempDbs();
 		
 		try {
+			// Make pipeline.
 			FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 			PipelineDriver driver = new PipelineDriver();
 			driver.setFilterConfigurationMapper(fcMapper);
+			
+			// Step 1: Raw Docs to Filter Events
 			driver.addStep(new RawDocumentToFilterEventsStep());
 			
+			// Step 2: Leverage
 			LeveragingStep leverage = new LeveragingStep();
 			driver.addStep(leverage);
 			
@@ -93,8 +98,10 @@ public class TranslateTask extends BasePipelineTask {
 			p.setFillTarget(true);
 			p.setFillTargetThreshold(100);
 			
+			// Step 3: Filter Events to Raw Docs (write output files)
 			driver.addStep(new FilterEventsToRawDocumentStep());
 			
+			// Run pipeline once for each locale (each locale has separate DB).
 			for (Entry<LocaleId, File> e : tmpDbs.entrySet()) {
 	
 				p.setResourceParameters("dbPath=" + e.getValue().getAbsolutePath());
@@ -125,6 +132,7 @@ public class TranslateTask extends BasePipelineTask {
 				driver.clearItems();
 			}
 		} finally {
+			// Delete DBs.
 			for (Entry<LocaleId, File> e : tmpDbs.entrySet()) {
 				e.getValue().delete();
 			}
@@ -144,11 +152,14 @@ public class TranslateTask extends BasePipelineTask {
 		
 		Map<LocaleId, File> tmpDbs = new HashMap<LocaleId, File>();
 		
+		// Make pipeline.
 		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(fcMapper);
+		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
 		
+		// Step 2: Generate SimpleTM
 		GenerateSimpleTmStep genTmStep = new GenerateSimpleTmStep();
 		driver.addStep(genTmStep);
 		
