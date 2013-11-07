@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import net.sf.okapi.common.LocaleId;
 import net.sf.okapi.common.Util;
@@ -20,6 +22,7 @@ import net.sf.okapi.steps.common.FilterEventsToRawDocumentStep;
 import net.sf.okapi.steps.common.RawDocumentToFilterEventsStep;
 import net.sf.okapi.steps.generatesimpletm.GenerateSimpleTmStep;
 import net.sf.okapi.steps.leveraging.LeveragingStep;
+import net.sf.okapi.steps.rainbowkit.creation.ExtractionStep;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -98,13 +101,20 @@ public class TranslateTask extends BasePipelineTask {
 			p.setFillTarget(true);
 			p.setFillTargetThreshold(100);
 			
-			// Step 3: Filter Events to Raw Docs (write output files)
+			// Step 3: Leveraging Result Sniffer
+			LeveragingResultSniffer sniffer = new LeveragingResultSniffer();
+			driver.addStep(sniffer);
+			
+			// Step 4: Filter Events to Raw Docs (write output files)
 			driver.addStep(new FilterEventsToRawDocumentStep());
 			
 			// Run pipeline once for each locale (each locale has separate DB).
 			for (Entry<LocaleId, File> e : tmpDbs.entrySet()) {
 	
 				p.setResourceParameters("dbPath=" + e.getValue().getAbsolutePath());
+				sniffer.setTargetLocale(e.getKey());
+				
+				Set<RawDocument> rawDocs = new HashSet<RawDocument>();
 				
 				for (FileSet set : filesets) {
 					DirectoryScanner ds = set.getDirectoryScanner();
@@ -124,12 +134,20 @@ public class TranslateTask extends BasePipelineTask {
 						RawDocument rawDoc = new RawDocument(inUri, inEnc, new LocaleId(srcLang), e.getKey(), filterId);
 						URI outUri = getOutUri(f, e.getKey());
 						driver.addBatchItem(rawDoc, outUri, outEnc);
+						rawDocs.add(rawDoc);
 					}
 				}
 				
 				driver.processBatch();
 				
 				driver.clearItems();
+				
+				if (sniffer.getTotal() != sniffer.getLeveraged()) {
+					System.out.println("There are some untranslated strings for " + e.getKey());
+					if ("true".equals(getProject().getProperty("okapi.generate"))) {
+						generateOmegaTKit(e.getKey(), e.getValue(), rawDocs);
+					}
+				}
 			}
 		} finally {
 			// Delete DBs.
@@ -156,6 +174,7 @@ public class TranslateTask extends BasePipelineTask {
 		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(fcMapper);
+		
 		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
 		
@@ -200,6 +219,59 @@ public class TranslateTask extends BasePipelineTask {
 		
 		return tmpDbs;
 	}
+	
+	
+	private void generateOmegaTKit(LocaleId locale, File db, Set<RawDocument> docs) {
+		
+		// Make pipeline.
+		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
+		PipelineDriver driver = new PipelineDriver();
+		driver.setFilterConfigurationMapper(fcMapper);
+		
+		driver.setRootDirectories("", getProject().getBaseDir().getAbsolutePath());
+		driver.setOutputDirectory(getProject().getBaseDir().getAbsolutePath());
+		
+		// Step 1: Raw Docs to Filter Events
+		driver.addStep(new RawDocumentToFilterEventsStep());
+		
+		// TODO: Add segmentation step
+		
+		// Step 2: Leverage
+		LeveragingStep leverage = new LeveragingStep();
+		driver.addStep(leverage);
+		
+		net.sf.okapi.steps.leveraging.Parameters p =
+				(net.sf.okapi.steps.leveraging.Parameters) leverage.getParameters();
+		p.setResourceClassName("net.sf.okapi.connectors.simpletm.SimpleTMConnector");
+		p.setResourceParameters("dbPath=" + db.getAbsolutePath());
+		p.setFillTarget(true);
+		p.setFillTargetThreshold(100);
+		
+		// Step 3: Extraction
+		ExtractionStep extraction = new ExtractionStep();
+		driver.addStep(extraction);
+		
+		net.sf.okapi.steps.rainbowkit.creation.Parameters ep =
+				(net.sf.okapi.steps.rainbowkit.creation.Parameters) extraction.getParameters();
+		ep.setWriterClass("net.sf.okapi.steps.rainbowkit.omegat.OmegaTPackageWriter");
+		ep.setWriterOptions("#v1\n"
+                + "placeholderMode.b=false\n"
+                + "allowSegmentation.b=false\n"
+                + "includePostProcessingHook.b=true\n" 
+                + "customPostProcessingHook=cp ${projectRoot}omegat" + File.separator + "project_save.tmx "
+                + "${projectRoot}.." + File.separator + ".." + File.separator + locale.toString() + ".tmx");
+		ep.setPackageName("Translate_" + locale.toString());
+		File tmDir = new File(getProject().getBaseDir(), tmdir);
+		File outDir = new File(tmDir, "work");
+		ep.setPackageDirectory(outDir.getAbsolutePath());
+		
+		for (RawDocument doc : docs) {
+			driver.addBatchItem(doc, doc.getInputURI(), outEnc);
+		}
+		
+		driver.processBatch();
+	}
+	
 
 	private String[] splitExt(File file) {
 		String name = file.getName();
