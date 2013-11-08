@@ -23,6 +23,7 @@ import net.sf.okapi.steps.common.RawDocumentToFilterEventsStep;
 import net.sf.okapi.steps.generatesimpletm.GenerateSimpleTmStep;
 import net.sf.okapi.steps.leveraging.LeveragingStep;
 import net.sf.okapi.steps.rainbowkit.creation.ExtractionStep;
+import net.sf.okapi.steps.segmentation.SegmentationStep;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -37,6 +38,7 @@ public class TranslateTask extends BasePipelineTask {
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	private String srcLang = null;
+	private String srx = null;
 	
 	public void setSrcLang(String srcLang) {
 		this.srcLang = srcLang;
@@ -61,18 +63,27 @@ public class TranslateTask extends BasePipelineTask {
 	public void setFilterConfigDir(String filterConfigDir) {
 		this.filterConfigDir = filterConfigDir;
 	}
+	public void setSrx(String srx) {
+		this.srx = srx;
+	}
 
 	@Override
 	void checkConfiguration() throws BuildException {
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
 		if (!tmDir.isDirectory()) {
-			throw new BuildException("tm dir not present");
+			throw new BuildException("TM dir not present.");
 		}
 		if (filesets.isEmpty()) {
-			throw new BuildException("No files specified to translate");
+			throw new BuildException("No files specified to translate.");
 		}
 		if (srcLang == null) {
-			throw new BuildException("Source language must be set");
+			throw new BuildException("Source language must be set.");
+		}
+		if (srx != null) {
+			File srxFile = new File(getProject().getBaseDir(), srx);
+			if (!srxFile.isFile()) {
+				throw new BuildException("Could not locate specified SRX file.");
+			}
 		}
 	}
 
@@ -91,27 +102,39 @@ public class TranslateTask extends BasePipelineTask {
 			// Step 1: Raw Docs to Filter Events
 			driver.addStep(new RawDocumentToFilterEventsStep());
 			
-			// Step 2: Leverage
+			if (srx != null) {
+				// Step 2: Segmentation
+				SegmentationStep segmentation = new SegmentationStep();
+				driver.addStep(segmentation);
+				
+				net.sf.okapi.steps.segmentation.Parameters sp =
+						(net.sf.okapi.steps.segmentation.Parameters) segmentation.getParameters();
+				sp.setSegmentSource(true);
+				sp.setSourceSrxPath(new File(getProject().getBaseDir(), srx).getAbsolutePath());
+				sp.setCopySource(false);
+			}
+			
+			// Step 3: Leverage
 			LeveragingStep leverage = new LeveragingStep();
 			driver.addStep(leverage);
 			
-			net.sf.okapi.steps.leveraging.Parameters p =
+			net.sf.okapi.steps.leveraging.Parameters lp =
 					(net.sf.okapi.steps.leveraging.Parameters) leverage.getParameters();
-			p.setResourceClassName("net.sf.okapi.connectors.simpletm.SimpleTMConnector");
-			p.setFillTarget(true);
-			p.setFillTargetThreshold(100);
+			lp.setResourceClassName("net.sf.okapi.connectors.simpletm.SimpleTMConnector");
+			lp.setFillTarget(true);
+			lp.setFillTargetThreshold(100);
 			
-			// Step 3: Leveraging Result Sniffer
+			// Step 4: Leveraging Result Sniffer
 			LeveragingResultSniffer sniffer = new LeveragingResultSniffer();
 			driver.addStep(sniffer);
 			
-			// Step 4: Filter Events to Raw Docs (write output files)
+			// Step 5: Filter Events to Raw Docs (write output files)
 			driver.addStep(new FilterEventsToRawDocumentStep());
 			
 			// Run pipeline once for each locale (each locale has separate DB).
 			for (Entry<LocaleId, File> e : tmpDbs.entrySet()) {
 	
-				p.setResourceParameters("dbPath=" + e.getValue().getAbsolutePath());
+				lp.setResourceParameters("dbPath=" + e.getValue().getAbsolutePath());
 				sniffer.setTargetLocale(e.getKey());
 				
 				Set<RawDocument> rawDocs = new HashSet<RawDocument>();
@@ -234,9 +257,19 @@ public class TranslateTask extends BasePipelineTask {
 		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
 		
-		// TODO: Add segmentation step
+		if (srx != null) {
+			// Step 2: Segmentation
+			SegmentationStep segmentation = new SegmentationStep();
+			driver.addStep(segmentation);
+			
+			net.sf.okapi.steps.segmentation.Parameters sp =
+					(net.sf.okapi.steps.segmentation.Parameters) segmentation.getParameters();
+			sp.setSegmentSource(true);
+			sp.setSourceSrxPath(new File(getProject().getBaseDir(), srx).getAbsolutePath());
+			sp.setCopySource(false);
+		}
 		
-		// Step 2: Leverage
+		// Step 3: Leverage
 		LeveragingStep leverage = new LeveragingStep();
 		driver.addStep(leverage);
 		
@@ -247,11 +280,11 @@ public class TranslateTask extends BasePipelineTask {
 		p.setFillTarget(true);
 		p.setFillTargetThreshold(100);
 		
-		// Step 3: Approve ALL the TUs!
+		// Step 4: Approve ALL the TUs!
 		ApproverStep approver = new ApproverStep();
 		driver.addStep(approver);
 		
-		// Step 4: Extraction
+		// Step 5: Extraction
 		ExtractionStep extraction = new ExtractionStep();
 		driver.addStep(extraction);
 		
