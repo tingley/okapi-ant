@@ -247,7 +247,11 @@ public class TranslateTask extends BasePipelineTask {
 		p.setFillTarget(true);
 		p.setFillTargetThreshold(100);
 		
-		// Step 3: Extraction
+		// Step 3: Approve ALL the TUs!
+		ApproverStep approver = new ApproverStep();
+		driver.addStep(approver);
+		
+		// Step 4: Extraction
 		ExtractionStep extraction = new ExtractionStep();
 		driver.addStep(extraction);
 		
