@@ -49,8 +49,4 @@ public class LeveragingResultSniffer extends BasePipelineStep {
 	public int getLeveraged() {
 		return leveraged;
 	}
-	
-	public static abstract class LeveragingSnifferCallback {
-		public abstract void sniffedLeveragingResults(int total, int translated);
-	}
 }
