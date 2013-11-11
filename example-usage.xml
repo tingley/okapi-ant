@@ -7,7 +7,7 @@
        - load. -->
     <path id="okapi.classpath">
         <fileset dir="${okapi.lib}" includes="**/*.jar" />
-        <fileset dir="target" includes="okapi-ant-1.0-SNAPSHOT.jar" />
+        <fileset dir="target" includes="okapi-ant-1.0.0.jar" />
     </path>
 
     <!-- Load all the tasks in the okapi namespace.  -->
