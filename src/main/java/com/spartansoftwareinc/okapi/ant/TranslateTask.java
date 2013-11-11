@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,10 +22,10 @@ import net.sf.okapi.common.pipelinedriver.PipelineDriver;
 import net.sf.okapi.common.resource.RawDocument;
 import net.sf.okapi.steps.common.FilterEventsToRawDocumentStep;
 import net.sf.okapi.steps.common.RawDocumentToFilterEventsStep;
-import net.sf.okapi.steps.generatesimpletm.GenerateSimpleTmStep;
 import net.sf.okapi.steps.leveraging.LeveragingStep;
 import net.sf.okapi.steps.rainbowkit.creation.ExtractionStep;
 import net.sf.okapi.steps.segmentation.SegmentationStep;
+import net.sf.okapi.steps.tmimport.TMImportStep;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
@@ -34,6 +36,7 @@ public class TranslateTask extends BasePipelineTask {
 	private String tmdir = "l10n";
 	private String inEnc = "utf-8";
 	private String outEnc = "utf-8";
+	private int matchThreshold = 95;
 	private String filterConfigDir = null;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
@@ -51,6 +54,9 @@ public class TranslateTask extends BasePipelineTask {
 	}
 	public void setOutEnc(String outEnc) {
 		this.outEnc = outEnc;
+	}
+	public void setMatchThreshold(String matchThreshold) {
+		this.matchThreshold = Integer.parseInt(matchThreshold);
 	}
 	public void addFileset(FileSet fileset) {
 		this.filesets.add(fileset);
@@ -91,7 +97,7 @@ public class TranslateTask extends BasePipelineTask {
 	void executeWithOkapiClassloader() {
 		
 		// Make a DB for each locale represented by a TMX in tmdir.
-		Map<LocaleId, File> tmpDbs = createTempDbs();
+		Map<LocaleId, Path> tmpDbs = createTempDbs();
 		
 		try {
 			// Make pipeline.
@@ -120,9 +126,9 @@ public class TranslateTask extends BasePipelineTask {
 			
 			net.sf.okapi.steps.leveraging.Parameters lp =
 					(net.sf.okapi.steps.leveraging.Parameters) leverage.getParameters();
-			lp.setResourceClassName("net.sf.okapi.connectors.simpletm.SimpleTMConnector");
+			lp.setResourceClassName("net.sf.okapi.connectors.pensieve.PensieveTMConnector");
 			lp.setFillTarget(true);
-			lp.setFillTargetThreshold(100);
+			lp.setFillTargetThreshold(matchThreshold);
 			
 			// Step 4: Leveraging Result Sniffer
 			LeveragingResultSniffer sniffer = new LeveragingResultSniffer();
@@ -132,9 +138,9 @@ public class TranslateTask extends BasePipelineTask {
 			driver.addStep(new FilterEventsToRawDocumentStep());
 			
 			// Run pipeline once for each locale (each locale has separate DB).
-			for (Entry<LocaleId, File> e : tmpDbs.entrySet()) {
+			for (Entry<LocaleId, Path> e : tmpDbs.entrySet()) {
 	
-				lp.setResourceParameters("dbPath=" + e.getValue().getAbsolutePath());
+				lp.setResourceParameters("dbDirectory=" + e.getValue().toString());
 				sniffer.setTargetLocale(e.getKey());
 				
 				Set<RawDocument> rawDocs = new HashSet<RawDocument>();
@@ -174,8 +180,12 @@ public class TranslateTask extends BasePipelineTask {
 			}
 		} finally {
 			// Delete DBs.
-			for (Entry<LocaleId, File> e : tmpDbs.entrySet()) {
-				e.getValue().delete();
+			for (Entry<LocaleId, Path> e : tmpDbs.entrySet()) {
+				File dir = e.getValue().toFile();
+				for (File f : dir.listFiles()) {
+					f.delete();
+				}
+				dir.delete();
 			}
 		}
 	}
@@ -189,9 +199,9 @@ public class TranslateTask extends BasePipelineTask {
 		return null;
 	}
 	
-	private Map<LocaleId, File> createTempDbs() {
+	private Map<LocaleId, Path> createTempDbs() {
 		
-		Map<LocaleId, File> tmpDbs = new HashMap<LocaleId, File>();
+		Map<LocaleId, Path> tmpDbs = new HashMap<LocaleId, Path>();
 		
 		// Make pipeline.
 		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
@@ -201,9 +211,9 @@ public class TranslateTask extends BasePipelineTask {
 		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
 		
-		// Step 2: Generate SimpleTM
-		GenerateSimpleTmStep genTmStep = new GenerateSimpleTmStep();
-		driver.addStep(genTmStep);
+		// Step 2: Generate Pensieve TM
+		TMImportStep tmImport = new TMImportStep();
+		driver.addStep(tmImport);
 		
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
 		
@@ -219,17 +229,19 @@ public class TranslateTask extends BasePipelineTask {
 			String trgLang = f.getName().substring(0, f.getName().indexOf("."));
 			LocaleId trgLocale = new LocaleId(trgLang);
 			
-			File tmpDb = null;
+			Path tmpDb = null;
 			try {
-				tmpDb = File.createTempFile("okapi-ant", ".h2.db");
+				
+				tmpDb = Files.createTempDirectory("okapi-ant").toAbsolutePath();
 				tmpDbs.put(trgLocale, tmpDb);
+				System.out.println("Created temp TM: " + tmpDb.toString());
 			} catch (IOException e) {
 				throw new RuntimeException("Could not create temp file for SimpleTM");
 			}
 			
-			net.sf.okapi.steps.generatesimpletm.Parameters p =
-					(net.sf.okapi.steps.generatesimpletm.Parameters) genTmStep.getParameters();
-			p.setTmPath(tmpDb.getAbsolutePath());
+			net.sf.okapi.steps.tmimport.Parameters p =
+					(net.sf.okapi.steps.tmimport.Parameters) tmImport.getParameters();
+			p.setTmDirectory(tmpDb.toString());
 			
 			RawDocument rawDoc = new RawDocument(f.toURI(), inEnc, new LocaleId(srcLang),
 					trgLocale, "okf_tmx");
@@ -244,7 +256,7 @@ public class TranslateTask extends BasePipelineTask {
 	}
 	
 	
-	private void generateOmegaTKit(LocaleId locale, File db, Set<RawDocument> docs) {
+	private void generateOmegaTKit(LocaleId locale, Path db, Set<RawDocument> docs) {
 		
 		// Make pipeline.
 		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
@@ -275,10 +287,10 @@ public class TranslateTask extends BasePipelineTask {
 		
 		net.sf.okapi.steps.leveraging.Parameters p =
 				(net.sf.okapi.steps.leveraging.Parameters) leverage.getParameters();
-		p.setResourceClassName("net.sf.okapi.connectors.simpletm.SimpleTMConnector");
-		p.setResourceParameters("dbPath=" + db.getAbsolutePath());
+		p.setResourceClassName("net.sf.okapi.connectors.pensieve.PensieveTMConnector");
+		p.setResourceParameters("dbDirectory=" + db.toString());
 		p.setFillTarget(true);
-		p.setFillTargetThreshold(100);
+		p.setFillTargetThreshold(matchThreshold);
 		
 		// Step 4: Approve ALL the TUs!
 		ApproverStep approver = new ApproverStep();
