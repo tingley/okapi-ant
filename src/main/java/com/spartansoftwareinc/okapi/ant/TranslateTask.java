@@ -3,6 +3,7 @@ package com.spartansoftwareinc.okapi.ant;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -33,8 +34,8 @@ public class TranslateTask extends BasePipelineTask {
 	private static final Pattern PATTERN_LANG_CODE = Pattern.compile(REGEX_LANG_CODE, Pattern.CASE_INSENSITIVE);
 	
 	private String tmdir = "l10n";
-	private String inEnc = "utf-8";
-	private String outEnc = "utf-8";
+	private String inEnc = Charset.defaultCharset().name();
+	private String outEnc = Charset.defaultCharset().name();
 	private int matchThreshold = 95;
 	private String filterConfigDir = null;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
