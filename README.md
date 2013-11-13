@@ -4,8 +4,12 @@ okapi-ant
 This is a collection of ant tasks that provide functionality based on the 
 [Okapi Framework](http://okapi.opentag.com/).
 
-Currently, all the tasks are related to the batch configuration (bconf)
-files used by the [Longhorn](http://www.opentag.com/okapi/wiki/index.php?title=longhorn) server.
+Currently, it supports 3 tasks, two of which are related to the batch 
+configuration (bconf) files used by the [Longhorn](http://www.opentag.com/okapi/wiki/index.php?title=longhorn) server.
+
+- `okapi:translate` - leverage TMX to produce target assets from source, as well as generating tkits for additional translation
+- `okapi:mkbconf` - generate a batch configuration from components
+- `okapi:installbconf` - unpack a batch configuration into components
 
 Defining the Tasks
 ------------------
@@ -23,7 +27,7 @@ like this:
        load. -->
     <path id="okapi.classpath">
       <fileset dir="${okapi.lib}" includes="**/*.jar" />
-      <fileset dir="${basedir}" includes="okapi-ant-1.0-0.jar" />
+      <fileset dir="${basedir}" includes="okapi-ant-1.1-SNAPSHOT.jar" />
     </path>
     
     <!-- Load all the tasks in the okapi namespace.  -->
