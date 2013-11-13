@@ -1,16 +1,21 @@
 <project name="test" default="build" basedir="."
          xmlns:okapi="antlib:com.spartansoftwareinc.okapi.ant">
 
-    <property name="okapi.lib" value="/Applications/okapi-apps_cocoa-macosx-x86_64_0.21/lib/" />
+    <!-- Specify local Okapi install via OKAPI_HOME envar for portability,
+       - or else hard code the path. -->
+    <property environment="env"/>
+    <condition property="okapi.lib" value="${env.OKAPI_HOME}/lib"
+        else="/path/to/your/okapi/installation">
+        <isset property="env.OKAPI_HOME"/>
+    </condition>
 
-    <!-- The task needs both its own code and an okapi installation to 
-       - load. -->
+    <!-- okapi-ant needs both its own code and an Okapi installation to load. -->
     <path id="okapi.classpath">
         <fileset dir="${okapi.lib}" includes="**/*.jar" />
         <fileset dir="target" includes="okapi-ant-1.0.0.jar" />
     </path>
 
-    <!-- Load all the tasks in the okapi namespace.  -->
+    <!-- Load all the tasks in the okapi namespace. -->
     <taskdef uri="antlib:com.spartansoftwareinc.okapi.ant"
         resource="com/spartansoftwareinc/okapi/ant/antlib.xml"
         classpathref="okapi.classpath" />
@@ -53,5 +58,14 @@
         <okapi:installbconf bconf="output2.bconf" dir="t2" />
     </target>
 
+    <!-- Translation task example: Translate localizable assets as
+       - part of the build process. Specify -Dokapi.generate=false to prevent
+       - generation of OmegaT translation kits for incomplete languages. -->
+    <target name="translate">
+        <okapi:translate srcLang="en-us" srx="l10n/Segmentation.srx">
+                <filterMapping extension=".properties" filterConfig="okf_properties" />
+                <fileset dir="src" includes="**/Strings.properties" />
+            </okapi:translate>
+    </target>
 
 </project>
