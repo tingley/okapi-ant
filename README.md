@@ -131,3 +131,8 @@ Okapi Version Support
 ---------------------
 
 Okapi M24-SNAPSHOT (at least 2013-11-13) or later is required.
+
+Java Version Support
+--------------------
+
+As Okapi M24 and later requires Java 7, so too does this project.
