@@ -4,4 +4,6 @@
         classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask"/>
     <taskdef name="installbconf" 
         classname="com.spartansoftwareinc.okapi.ant.InstallBatchConfigTask"/>
+    <taskdef name="translate"
+    	classname="com.spartansoftwareinc.okapi.ant.TranslateTask"/>
 </antlib>
