@@ -55,6 +55,7 @@ public abstract class BasePipelineTask extends Task {
         	System.out.println("Loading custom filter configurations from " + 
         				       filterConfigPath);
             fcMapper.setCustomConfigurationsDirectory(filterConfigPath);
+            fcMapper.updateCustomConfigurations();
         }
         return fcMapper;
     }

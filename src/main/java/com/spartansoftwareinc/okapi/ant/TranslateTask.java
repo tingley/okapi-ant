@@ -43,6 +43,8 @@ public class TranslateTask extends BasePipelineTask {
 	private String srcLang = null;
 	private String srx = null;
 	
+	private FilterConfigurationMapper fcMapper = null;
+	
 	public void setSrcLang(String srcLang) {
 		this.srcLang = srcLang;
 	}
@@ -92,14 +94,23 @@ public class TranslateTask extends BasePipelineTask {
 			}
 		}
 	}
+	
+	private FilterConfigurationMapper getFilterMapper() {
+		if (fcMapper == null) {
+			File tmDir = new File(getProject().getBaseDir(), tmdir);
+			String filterConfigDirPath = filterConfigDir == null ? tmDir.getAbsolutePath()
+					: new File(getProject().getBaseDir(), filterConfigDir).getAbsolutePath();
+			fcMapper = super.getFilterMapper(filterConfigDirPath, null);
+		}
+		return fcMapper;
+	}
 
 	@Override
 	void executeWithOkapiClassloader() {
 		
 		// Make pipeline.
-		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
-		driver.setFilterConfigurationMapper(fcMapper);
+		driver.setFilterConfigurationMapper(getFilterMapper());
 		
 		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
@@ -160,7 +171,7 @@ public class TranslateTask extends BasePipelineTask {
 					String ext = splitExt(f)[1];
 					String filterId = getMappedFilter(ext);
 					if (filterId == null) {
-						FilterConfiguration fc = fcMapper.getDefaultConfigurationFromExtension(ext);
+						FilterConfiguration fc = getFilterMapper().getDefaultConfigurationFromExtension(ext);
 						if (fc != null) {
 							filterId = fc.configId;
 						}
@@ -220,9 +231,8 @@ public class TranslateTask extends BasePipelineTask {
 	private void generateOmegaTKit(LocaleId locale, LeveragingStep lStep, Set<RawDocument> docs) {
 		
 		// Make pipeline.
-		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
-		driver.setFilterConfigurationMapper(fcMapper);
+		driver.setFilterConfigurationMapper(getFilterMapper());
 		
 		driver.setRootDirectories("", getProject().getBaseDir().getAbsolutePath());
 		driver.setOutputDirectory(getProject().getBaseDir().getAbsolutePath());
