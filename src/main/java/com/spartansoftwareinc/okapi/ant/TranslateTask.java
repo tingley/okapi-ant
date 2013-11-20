@@ -190,7 +190,7 @@ public class TranslateTask extends BasePipelineTask {
 			if (sniffer.getTotal() != sniffer.getLeveraged()) {
 				System.out.println("There are some untranslated strings for " + trgLocale);
 				if (!"false".equals(getProject().getProperty("okapi.generate"))) {
-					generateOmegaTKit(trgLocale, leverage, rawDocs);
+					generateOmegaTKit(trgLocale, leverage, rawDocs, tmx);
 				}
 			}
 		}
@@ -228,7 +228,7 @@ public class TranslateTask extends BasePipelineTask {
 		throw new BuildException("Could not determine target language of file " + file.getAbsolutePath());
 	}
 	
-	private void generateOmegaTKit(LocaleId locale, LeveragingStep lStep, Set<RawDocument> docs) {
+	private void generateOmegaTKit(LocaleId locale, LeveragingStep lStep, Set<RawDocument> docs, File tmx) {
 		
 		// Make pipeline.
 		PipelineDriver driver = new PipelineDriver();
@@ -270,8 +270,11 @@ public class TranslateTask extends BasePipelineTask {
                 + "placeholderMode.b=false\n"
                 + "allowSegmentation.b=false\n"
                 + "includePostProcessingHook.b=true\n" 
-                + "customPostProcessingHook=cp ${projectRoot}omegat" + File.separator + "project_save.tmx "
-                + "${projectRoot}.." + File.separator + ".." + File.separator + locale.toString() + ".tmx");
+                + "customPostProcessingHook=ant post-translate -Dokapi.src.lang=" + srcLang
+                + " \"-Dokapi.tkit.target=${projectRoot}\""
+                + " \"-Dokapi.target.tmx=" + tmx.getAbsolutePath() + "\"");
+      //          + "customPostProcessingHook=cp ${projectRoot}omegat" + File.separator + "project_save.tmx "
+       //         + "${projectRoot}.." + File.separator + ".." + File.separator + locale.toString() + ".tmx");
 		ep.setPackageName("Translate_" + locale.toString());
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
 		File outDir = new File(tmDir, "work");
