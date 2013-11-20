@@ -17,6 +17,7 @@ import net.sf.okapi.common.Util;
 import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.pipelinedriver.PipelineDriver;
+import net.sf.okapi.common.plugins.PluginsManager;
 import net.sf.okapi.common.resource.RawDocument;
 import net.sf.okapi.steps.common.FilterEventsToRawDocumentStep;
 import net.sf.okapi.steps.common.RawDocumentToFilterEventsStep;
@@ -92,13 +93,21 @@ public class TranslateTask extends BasePipelineTask {
 			}
 		}
 	}
+	
+	@Override
+	protected FilterConfigurationMapper getFilterMapper(String filterConfigPath, 
+			PluginsManager plManager) {
+		File tmDir = new File(getProject().getBaseDir(), tmdir);
+		String filterConfigDirPath = filterConfigDir == null ? tmDir.getAbsolutePath()
+				: new File(getProject().getBaseDir(), filterConfigDir).getAbsolutePath();
+		return super.getFilterMapper(filterConfigDirPath, null);
+	}
 
 	@Override
 	void executeWithOkapiClassloader() {
 		
 		// Make pipeline.
-		FilterConfigurationMapper fcMapper = getFilterMapper(
-				filterConfigDir == null ? tmdir : filterConfigDir, null);
+		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(fcMapper);
 		
