@@ -97,7 +97,8 @@ public class TranslateTask extends BasePipelineTask {
 	void executeWithOkapiClassloader() {
 		
 		// Make pipeline.
-		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigDir, null);
+		FilterConfigurationMapper fcMapper = getFilterMapper(
+				filterConfigDir == null ? tmdir : filterConfigDir, null);
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(fcMapper);
 		
