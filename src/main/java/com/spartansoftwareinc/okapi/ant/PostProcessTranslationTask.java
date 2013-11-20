@@ -74,7 +74,12 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 		for (LocaleId trgLocale : tkits.keySet()) {
 			final LocaleId thisTrgLocale = trgLocale;
 			File xlfDir = new File(tkits.get(trgLocale), "target");
+			
 			File outputTmx = tmxs.get(trgLocale);
+			if (outputTmx == null) {
+				System.out.println("No suitable TMX found for language " + trgLocale + ". Skipping.");
+				continue;
+			}
 			
 			System.out.println("Post-processing tkit " + tkits.get(trgLocale).getName()
 					+ " to " + outputTmx.getName());
