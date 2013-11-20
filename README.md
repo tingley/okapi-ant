@@ -98,20 +98,25 @@ Usage:
   files will be output to `source/file/path/${basename}_${targetLocale}.${ext}`.
 - Specify `<filterMapping>`s if using custom filters or if Okapi cannot
   auto-detect an appropriate filter.
-- OmegaT translation kits will be automatically generated in `tmdir/work` for
+- OmegaT translation kits will be automatically generated in `${tmdir}/work` for
   any languages that are detected to be incomplete. Suppress this by setting
   e.g. `-Dokapi.generate=false`.
   
 Additional supported parameters (specified as attributes on `<okapi:translate>`):
-- `tmdir`: The location of the TMX files and tkit `work` directory
+- `tmdir`: The location of the TMX files and tkit `work` directory. `l10n` by default.
 - `inEnc`: The encoding of the input files. The default value depends on your system.
   This is only used if the filter cannot detect the proper encoding.
 - `outEnc`: The encoding of the output files. The default value depends on your system.
 - `matchThreshold`: The minimum required matching percentage for leveraging
-- `filterConfigDir`: The location of any custom filter configurations
+- `filterConfigDir`: The location of any custom filter configurations. `tmdir` is used
+  by default.
 - `srx`: The path of an SRX file to be used for segmenting. Specify this relative
   to the repository root.
 
+Notes:
+- You will likely want to add `/${tmdir}/work` to your `.gitignore` file.
+- You will likely also want to ignore translated versions of your files. Ex:
+  If your source is `Strings.properties` then ignore `Strings_*.properties`.
 
 Issues
 ------
