@@ -27,7 +27,7 @@ like this:
        load. -->
     <path id="okapi.classpath">
       <fileset dir="${okapi.lib}" includes="**/*.jar" />
-      <fileset dir="${basedir}" includes="okapi-ant-1.1-SNAPSHOT.jar" />
+      <fileset dir="${basedir}" includes="okapi-ant-1.1.jar" />
     </path>
     
     <!-- Load all the tasks in the okapi namespace.  -->
@@ -135,7 +135,7 @@ text units containing inline codes.
 Okapi Version Support
 ---------------------
 
-Okapi M24-SNAPSHOT (at least 2013-11-13) or later is required.
+Okapi M24 or later is required.
 
 Java Version Support
 --------------------
