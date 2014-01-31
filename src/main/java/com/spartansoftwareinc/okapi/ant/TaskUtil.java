@@ -17,8 +17,9 @@ import java.util.regex.Pattern;
 import net.sf.okapi.applications.rainbow.Input;
 import net.sf.okapi.common.FileUtil;
 import net.sf.okapi.common.LocaleId;
-
 import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.DirectoryScanner;
+import org.apache.tools.ant.types.FileSet;
 
 public class TaskUtil {
 	
@@ -130,6 +131,19 @@ public class TaskUtil {
 		}
 		
 		throw new BuildException("Could not determine target language of file " + file.getAbsolutePath());
+	}
+	
+	public static List<File> filesetToFiles(List<FileSet> filesets) {
+		List<File> result = new ArrayList<File>();
+		for (FileSet set : filesets) {
+			DirectoryScanner ds = set.getDirectoryScanner();
+			ds.scan();
+			File baseDir = ds.getBasedir();
+			for (String filename : ds.getIncludedFiles()) {
+				result.add(new File(baseDir, filename));
+			}
+		}
+		return result;
 	}
 }
 	
