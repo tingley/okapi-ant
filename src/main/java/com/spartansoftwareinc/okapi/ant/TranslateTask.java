@@ -196,7 +196,7 @@ public class TranslateTask extends BasePipelineTask {
 	
 	private boolean tkitWasModified(File tkit, final long timestamp) {
 		File target = new File(tkit, "target");
-		final MyBool b = new MyBool();
+		final WrappedBool b = new WrappedBool();
 		try {
 			Files.walkFileTree(target.toPath(), new SimpleFileVisitor<Path>() {
 				@Override
@@ -216,7 +216,7 @@ public class TranslateTask extends BasePipelineTask {
 		return b.value;
 	}
 	
-	class MyBool {
+	class WrappedBool {
 		public boolean value = false;
 	}
 	

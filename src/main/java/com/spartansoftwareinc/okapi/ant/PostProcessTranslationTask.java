@@ -73,6 +73,8 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 		System.out.println("Post-processing tkit " + tkit.getName()
 				+ " to " + outputTmx.getName());
 		
+		final PipelineDriver driver = getDriver();
+		
 		getParams().setOutputPath(outputTmx.getAbsolutePath());
 		
 		// Walk all XLIFFs and add them to pipeline.
@@ -92,16 +94,16 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 							srcLocale,
 							trgLocale,
 							"okf_xliff");
-					getDriver().addBatchItem(rawDoc, null, "utf-8");
+					driver.addBatchItem(rawDoc, null, "utf-8");
 					return FileVisitResult.CONTINUE;
 				}
 			});
 		} catch (IOException e) {
 			throw new BuildException(e);
 		}
-		getDriver().processBatch();
+		driver.processBatch();
 		
-		getDriver().clearItems();
+		driver.clearItems();
 	}
 	
 	private net.sf.okapi.steps.formatconversion.Parameters cp;
