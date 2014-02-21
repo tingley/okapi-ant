@@ -6,4 +6,6 @@
         classname="com.spartansoftwareinc.okapi.ant.InstallBatchConfigTask"/>
     <taskdef name="translate"
     	classname="com.spartansoftwareinc.okapi.ant.TranslateTask"/>
+    <taskdef name="post-translate"
+    	classname="com.spartansoftwareinc.okapi.ant.PostProcessTranslationTask"/>
 </antlib>

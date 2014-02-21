@@ -1,17 +1,22 @@
 package com.spartansoftwareinc.okapi.ant;
 
 import java.io.File;
-import java.io.FilenameFilter;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import net.sf.okapi.common.FileUtil;
 import net.sf.okapi.common.LocaleId;
 import net.sf.okapi.common.Util;
 import net.sf.okapi.common.filters.FilterConfiguration;
@@ -25,13 +30,11 @@ import net.sf.okapi.steps.rainbowkit.creation.ExtractionStep;
 import net.sf.okapi.steps.segmentation.SegmentationStep;
 
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.types.FileSet;
 
 public class TranslateTask extends BasePipelineTask {
 	
-	private static final String REGEX_LANG_CODE = "(?<![a-z])[a-z]{2}[-_][a-z]{2}(?![a-z])";
-	private static final Pattern PATTERN_LANG_CODE = Pattern.compile(REGEX_LANG_CODE, Pattern.CASE_INSENSITIVE);
+	public static final String WORK_DIR_NAME = "work";
 	
 	private String tmdir = "l10n";
 	private String inEnc = Charset.defaultCharset().name();
@@ -145,42 +148,37 @@ public class TranslateTask extends BasePipelineTask {
 		driver.addStep(new FilterEventsToRawDocumentStep());
 		
 		// Run pipeline once for each TMX
-		FilenameFilter filter = new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.endsWith(".tmx");
-			}
-		};
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		for (File tmx : tmDir.listFiles(filter)) {
+		for (File tmx : tmDir.listFiles(TaskUtil.TMX_FILE_FILTER)) {
 			
-			LocaleId trgLocale = guessLocale(tmx);
+			LocaleId trgLocale = TaskUtil.guessLocale(tmx, srcLang);
+			
+			File tkit = getTkits(tmDir).get(trgLocale);
+			if (tkit != null && tkitWasModified(tkit, tmx.lastModified())) {
+				System.out.println("Translation kit is newer than existing data. Post-processing...");
+				PostProcessTranslationTask pp = new PostProcessTranslationTask();
+				pp.doPostProcess(tkit, tmx, new LocaleId(srcLang), trgLocale);
+			}
 
 			lp.setResourceParameters("biFile=" + tmx.getAbsolutePath());
 			sniffer.setTargetLocale(trgLocale);
 			
 			Set<RawDocument> rawDocs = new HashSet<RawDocument>();
 			
-			for (FileSet set : filesets) {
-				DirectoryScanner ds = set.getDirectoryScanner();
-				ds.scan();
-				File baseDir = ds.getBasedir();
-				for (String filename : ds.getIncludedFiles()) {
-					File f = new File(baseDir, filename);
-					URI inUri = Util.toURI(f.getAbsolutePath());
-					String ext = splitExt(f)[1];
-					String filterId = getMappedFilter(ext);
-					if (filterId == null) {
-						FilterConfiguration fc = getFilterMapper().getDefaultConfigurationFromExtension(ext);
-						if (fc != null) {
-							filterId = fc.configId;
-						}
+			for (File f : TaskUtil.filesetToFiles(filesets)) {
+				URI inUri = Util.toURI(f.getAbsolutePath());
+				String ext = splitExt(f)[1];
+				String filterId = getMappedFilter(ext);
+				if (filterId == null) {
+					FilterConfiguration fc = getFilterMapper().getDefaultConfigurationFromExtension(ext);
+					if (fc != null) {
+						filterId = fc.configId;
 					}
-					RawDocument rawDoc = new RawDocument(inUri, inEnc, new LocaleId(srcLang), trgLocale, filterId);
-					URI outUri = getOutUri(f, trgLocale);
-					driver.addBatchItem(rawDoc, outUri, outEnc);
-					rawDocs.add(rawDoc);
 				}
+				RawDocument rawDoc = new RawDocument(inUri, inEnc, new LocaleId(srcLang), trgLocale, filterId);
+				URI outUri = getOutUri(f, trgLocale);
+				driver.addBatchItem(rawDoc, outUri, outEnc);
+				rawDocs.add(rawDoc);
 			}
 			
 			driver.processBatch();
@@ -190,10 +188,57 @@ public class TranslateTask extends BasePipelineTask {
 			if (sniffer.getTotal() != sniffer.getLeveraged()) {
 				System.out.println("There are some untranslated strings for " + trgLocale);
 				if (!"false".equals(getProject().getProperty("okapi.generate"))) {
-					generateOmegaTKit(trgLocale, leverage, rawDocs);
+					generateOmegaTKit(trgLocale, leverage, rawDocs, tmx);
 				}
 			}
 		}
+	}
+	
+	private boolean tkitWasModified(File tkit, final long timestamp) {
+		File target = new File(tkit, "target");
+		final WrappedBool b = new WrappedBool();
+		try {
+			Files.walkFileTree(target.toPath(), new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(Path path,
+						BasicFileAttributes attrs) throws IOException {
+					if (path.toFile().lastModified() > timestamp) {
+						b.value= true;
+						return FileVisitResult.TERMINATE;
+					}
+					return FileVisitResult.CONTINUE;
+				}
+			});
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return b.value;
+	}
+	
+	class WrappedBool {
+		public boolean value = false;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static Map<LocaleId, File> getTkits(File tmDir) {
+		
+		File workDir = new File(tmDir, WORK_DIR_NAME);
+		
+		if (!workDir.isDirectory()) {
+			//System.out.println("Translation work directory doesn't exist.");
+			return Collections.EMPTY_MAP;
+		}
+		
+		Map<LocaleId, File> tkits = new HashMap<LocaleId, File>();
+		
+		for (File f : workDir.listFiles()) {
+			if (f.isDirectory() && new File(f, "omegat.project").exists()) {
+				tkits.put(TaskUtil.guessLocale(f, null), f);
+			}
+		}
+		
+		return tkits;
 	}
 	
 	private String getMappedFilter(String ext) {
@@ -205,30 +250,7 @@ public class TranslateTask extends BasePipelineTask {
 		return null;
 	}
 	
-	private LocaleId guessLocale(File file) {
-		List<String> langs = FileUtil.guessLanguages(file.getAbsolutePath());
-		List<String> trgLangCandidates = new ArrayList<String>();
-		for (String s : langs) {
-			if (!s.equalsIgnoreCase(srcLang)) {
-				trgLangCandidates.add(s);
-			}
-		}
-		
-		// If we have unique result, return now.
-		if (trgLangCandidates.size() == 1) {
-			return new LocaleId(trgLangCandidates.get(0));
-		}
-		
-		// Detect locale from filename.
-		Matcher m = PATTERN_LANG_CODE.matcher(file.getName());
-		if (m.find() && !m.group().equalsIgnoreCase(srcLang)) {
-			return new LocaleId(m.group());
-		}
-		
-		throw new BuildException("Could not determine target language of file " + file.getAbsolutePath());
-	}
-	
-	private void generateOmegaTKit(LocaleId locale, LeveragingStep lStep, Set<RawDocument> docs) {
+	private void generateOmegaTKit(LocaleId locale, LeveragingStep lStep, Set<RawDocument> docs, File tmx) {
 		
 		// Make pipeline.
 		PipelineDriver driver = new PipelineDriver();
@@ -269,12 +291,10 @@ public class TranslateTask extends BasePipelineTask {
 		ep.setWriterOptions("#v1\n"
                 + "placeholderMode.b=false\n"
                 + "allowSegmentation.b=false\n"
-                + "includePostProcessingHook.b=true\n" 
-                + "customPostProcessingHook=cp ${projectRoot}omegat" + File.separator + "project_save.tmx "
-                + "${projectRoot}.." + File.separator + ".." + File.separator + locale.toString() + ".tmx");
+                + "includePostProcessingHook.b=true");
 		ep.setPackageName("Translate_" + locale.toString());
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		File outDir = new File(tmDir, "work");
+		File outDir = new File(tmDir, WORK_DIR_NAME);
 		ep.setPackageDirectory(outDir.getAbsolutePath());
 		
 		for (RawDocument doc : docs) {
