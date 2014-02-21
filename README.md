@@ -101,6 +101,8 @@ Usage:
 - OmegaT translation kits will be automatically generated in `${tmdir}/work` for
   any languages that are detected to be incomplete. Suppress this by setting
   e.g. `-Dokapi.generate=false`.
+- OmegaT translation kits that have been modified will automatically be post-
+  processed to generate a new TMX for the kit's language in `${tmdir}`.
   
 Additional supported parameters (specified as attributes on `<okapi:translate>`):
 - `tmdir`: The location of the TMX files and tkit `work` directory. `l10n` by default.
@@ -115,8 +117,12 @@ Additional supported parameters (specified as attributes on `<okapi:translate>`)
 
 Notes:
 - You will likely want to add `/${tmdir}/work` to your `.gitignore` file.
-- You will likely also want to ignore translated versions of your files. Ex:
+- You may also want to ignore translated versions of your files. Ex:
   If your source is `Strings.properties` then ignore `Strings_*.properties`.
+- You can also explicitly invoke the translation post-processing with
+  `<okapi:post-translate srcLang="en-us" />`.
+- If your source strings contain leading or trailing whitespace, you may have to
+  adjust OmegaT's handling of whitespace in order to get perfect matches.
 
 Issues
 ------
