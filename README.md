@@ -11,6 +11,7 @@ configuration (bconf) files used by the [Longhorn](http://www.opentag.com/okapi/
 - `okapi:mkbconf` - generate a batch configuration from components
 - `okapi:installbconf` - unpack a batch configuration into components
 
+
 Defining the Tasks
 ------------------
 
@@ -36,6 +37,7 @@ like this:
         classpathref="okapi.classpath" />
 
 The antlib.xml file will define all tasks within the `okapi:` namespace.
+
 
 Creating bconfs with `<okapi:mkbconf>`
 --------------------------------------
@@ -69,6 +71,7 @@ such as a pipeline (`.pln`) file and filter configuration (`.fprm`) files.
         <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
     </okapi:mkbconf>
 
+
 Exploding bconfs with `<okapi:installbconf>`
 --------------------------------------------
 
@@ -78,6 +81,7 @@ feature in Rainbow.
     <!-- Very simple: write the contents of output.bconf to 
        - the installed_bconf directory, which much exist and be empty. -->
     <okapi:installbconf bconf="output.bconf" dir="installed_bconf" />
+
 
 Translating localizable assets
 ------------------------------
@@ -123,6 +127,9 @@ Notes:
   `<okapi:post-translate srcLang="en-us" />`.
 - If your source strings contain leading or trailing whitespace, you may have to
   adjust OmegaT's handling of whitespace in order to get perfect matches.
+- Correct handling of inline codes requires OmegaT 3.1.0 or later, with 
+  Options > External TMXs > Use XML for standalone tags turned ON.
+
 
 Issues
 ------
@@ -133,15 +140,12 @@ relative to the location of the ant buildfile.  In some cases, this may mean
 you need to modify your .pln or .rnb file to update the paths of these
 referenced files.
 
-In the translate step, due to differences in the way inline codes are handled
-by OmegaT and Okapi, it is not possible at the moment to correctly leverage
-text units containing inline codes.
-
 
 Okapi Version Support
 ---------------------
 
 Okapi M24 or later is required.
+
 
 Java Version Support
 --------------------
