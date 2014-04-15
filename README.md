@@ -151,3 +151,9 @@ Java Version Support
 --------------------
 
 As Okapi M24 and later requires Java 7, so too does this project.
+
+
+License
+-------
+
+okapi-ant is licensed under the [LGPLv3](https://www.gnu.org/licenses/lgpl-3.0.txt).
