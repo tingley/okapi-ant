@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 
 import net.sf.okapi.common.LocaleId;
-import net.sf.okapi.common.Util;
 import net.sf.okapi.common.filters.FilterConfiguration;
 import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.pipelinedriver.PipelineDriver;
@@ -37,9 +36,10 @@ import org.apache.tools.ant.types.FileSet;
 public class TranslateTask extends BasePipelineTask {
 
 	public static final String WORK_DIR_NAME = "work";
+	public static final String DEFAULT_TM_DIR = "l10n";
 
 	// Parameters
-	private String tmdir = "l10n";
+	private Path tmDir;
 	private String inEnc = Charset.defaultCharset().name();
 	private String outEnc = Charset.defaultCharset().name();
 	private int matchThreshold = 95;
@@ -48,18 +48,18 @@ public class TranslateTask extends BasePipelineTask {
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	private String srcLang = null;
 	private String srx = null;
-	private String targetDir = null;
+	private Path targetPath = null;
 
 	// State
-	private Path targetPath = null;
+	private FileSystem fs = FileSystems.getDefault();
 
 	private FilterConfigurationMapper fcMapper = null;
 	
 	public void setSrcLang(String srcLang) {
 		this.srcLang = srcLang;
 	}
-	public void setTmdir(String tmdir) {
-		this.tmdir = tmdir;
+	public void setTmDir(String tmdir) {
+		this.tmDir = fs.getPath(tmdir);
 	}
 	public void setInEnc(String inEnc) {
 		this.inEnc = inEnc;
@@ -74,7 +74,7 @@ public class TranslateTask extends BasePipelineTask {
 	 * @param targetDir Path to the directory, which is expected to exist
 	 */
 	public void setTargetDir(String targetDir) {
-	    this.targetDir = targetDir;
+	    this.targetPath = fs.getPath(targetDir);
 	}
 	public void setMatchThreshold(String matchThreshold) {
 		this.matchThreshold = Integer.parseInt(matchThreshold);
@@ -96,19 +96,17 @@ public class TranslateTask extends BasePipelineTask {
 
 	@Override
 	void checkConfiguration() throws BuildException {
-	    FileSystem fs = FileSystems.getDefault();
-		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		if (!tmDir.isDirectory()) {
+		if (tmDir == null) {
+			tmDir = getProject().getBaseDir().toPath().resolve(DEFAULT_TM_DIR);
+		}
+		if (!Files.isDirectory(tmDir)) {
 			throw new BuildException("TM dir not present.");
 		}
 		if (filesets.isEmpty()) {
 			throw new BuildException("No files specified to translate.");
 		}
-		if (targetDir != null) {
-			targetPath = fs.getPath(targetDir);
-			if (!Files.exists(targetPath)) {
-				throw new BuildException("Target directory " + targetPath + " does not exist");
-			}
+		if (!Files.exists(targetPath)) {
+			throw new BuildException("Target directory " + targetPath + " does not exist");
 		}
 		if (srcLang == null) {
 			throw new BuildException("Source language must be set.");
@@ -123,8 +121,7 @@ public class TranslateTask extends BasePipelineTask {
 	
 	private FilterConfigurationMapper getFilterMapper() {
 		if (fcMapper == null) {
-			File tmDir = new File(getProject().getBaseDir(), tmdir);
-			String filterConfigDirPath = filterConfigDir == null ? tmDir.getAbsolutePath()
+			String filterConfigDirPath = filterConfigDir == null ? tmDir.toString()
 					: new File(getProject().getBaseDir(), filterConfigDir).getAbsolutePath();
 			fcMapper = super.getFilterMapper(filterConfigDirPath, null);
 		}
@@ -171,8 +168,7 @@ public class TranslateTask extends BasePipelineTask {
 		driver.addStep(new FilterEventsToRawDocumentStep());
 
 		// Run pipeline once for each TMX
-		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		for (File tmx : tmDir.listFiles(TaskUtil.TMX_FILE_FILTER)) {
+		for (File tmx : tmDir.toFile().listFiles(TaskUtil.TMX_FILE_FILTER)) {
 			
 			LocaleId trgLocale = TaskUtil.guessLocale(tmx, srcLang);
 			
@@ -243,9 +239,9 @@ public class TranslateTask extends BasePipelineTask {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Map<LocaleId, File> getTkits(File tmDir) {
+	public static Map<LocaleId, File> getTkits(Path tmDir) {
 
-		File workDir = new File(tmDir, WORK_DIR_NAME);
+		File workDir = tmDir.resolve(WORK_DIR_NAME).toFile();
 
 		if (!workDir.isDirectory()) {
 			//System.out.println("Translation work directory doesn't exist.");
@@ -315,8 +311,7 @@ public class TranslateTask extends BasePipelineTask {
                 + "allowSegmentation.b=false\n"
                 + "includePostProcessingHook.b=true");
 		ep.setPackageName("Translate_" + locale.toString());
-		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		File outDir = new File(tmDir, WORK_DIR_NAME);
+		File outDir = tmDir.resolve(WORK_DIR_NAME).toFile();
 		ep.setPackageDirectory(outDir.getAbsolutePath());
 		
 		for (RawDocument doc : docs) {

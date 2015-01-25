@@ -2,6 +2,8 @@ package com.spartansoftwareinc.okapi.ant;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,13 +20,16 @@ import net.sf.okapi.steps.formatconversion.FormatConversionStep;
 
 import org.apache.tools.ant.BuildException;
 
+// TODO: refactor tmDir-related code with TranslateTask
 public class PostProcessTranslationTask extends BasePipelineTask {
+	public static final String DEFAULT_TM_DIR = "l10n";
 
-	private String tmdir = "l10n";
+	private Path tmDir = null;
 	private String srcLang = null;
-	
-	public void setTmdir(String tmdir) {
-		this.tmdir = tmdir;
+	private FileSystem fs = FileSystems.getDefault();
+
+	public void setTmDir(String tmdir) {
+		this.tmDir = fs.getPath(tmdir);
 	}
 	public void setSrcLang(String srcLang) {
 		this.srcLang = srcLang;
@@ -32,8 +37,10 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 	
 	@Override
 	void checkConfiguration() throws BuildException {
-		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		if (!tmDir.isDirectory()) {
+		if (tmDir == null) {
+			tmDir = getProject().getBaseDir().toPath().resolve(DEFAULT_TM_DIR);
+		}
+		if (!Files.isDirectory(tmDir)) {
 			throw new BuildException("TM dir not present.");
 		}
 		if (srcLang == null) {
@@ -43,19 +50,18 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 
 	@Override
 	void executeWithOkapiClassloader() {
-		
-		Map<LocaleId, File> tkits = TranslateTask.getTkits(new File(getProject().getBaseDir(), tmdir));
+		Map<LocaleId, File> tkits = TranslateTask.getTkits(tmDir);
 		if (tkits.isEmpty()) {
 			System.out.println("No translation kits present.");
 			return;
 		}
-		
+
 		Map<LocaleId, File> tmxs = getTmxs();
 		if (tmxs.isEmpty()) {
 			System.out.println("No TMXs present.");
 			return;
 		}
-		
+
 		for (LocaleId trgLocale : tkits.keySet()) {
 			File outputTmx = tmxs.get(trgLocale);
 			if (outputTmx == null) {
@@ -139,12 +145,9 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 	}
 	
 	private Map<LocaleId, File> getTmxs() {
-		
-		File tmDir = new File(getProject().getBaseDir(), tmdir);
-		
 		Map<LocaleId, File> tmxs = new HashMap<LocaleId, File>();
 		
-		for (File f : tmDir.listFiles(TaskUtil.TMX_FILE_FILTER)) {
+		for (File f : tmDir.toFile().listFiles(TaskUtil.TMX_FILE_FILTER)) {
 			tmxs.put(TaskUtil.guessLocale(f, srcLang), f);
 		}
 		
