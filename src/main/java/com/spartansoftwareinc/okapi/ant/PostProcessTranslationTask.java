@@ -23,13 +23,18 @@ import org.apache.tools.ant.BuildException;
 // TODO: refactor tmDir-related code with TranslateTask
 public class PostProcessTranslationTask extends BasePipelineTask {
 	public static final String DEFAULT_TM_DIR = "l10n";
+	public static final String DEFAULT_WORK_DIR = "work";
 
 	private Path tmDir = null;
+	private Path workDir = null;
 	private String srcLang = null;
 	private FileSystem fs = FileSystems.getDefault();
 
 	public void setTmDir(String tmdir) {
 		this.tmDir = fs.getPath(tmdir);
+	}
+	public void setWorkDir(String dir) {
+		this.workDir = fs.getPath(dir);
 	}
 	public void setSrcLang(String srcLang) {
 		this.srcLang = srcLang;
@@ -43,6 +48,9 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 		if (!Files.isDirectory(tmDir)) {
 			throw new BuildException("TM dir not present.");
 		}
+		if (workDir == null) {
+			workDir = tmDir.resolve(DEFAULT_WORK_DIR);
+		}
 		if (srcLang == null) {
 			throw new BuildException("Source language must be set.");
 		}
@@ -50,7 +58,7 @@ public class PostProcessTranslationTask extends BasePipelineTask {
 
 	@Override
 	void executeWithOkapiClassloader() {
-		Map<LocaleId, File> tkits = TranslateTask.getTkits(tmDir);
+		Map<LocaleId, File> tkits = TranslateTask.getTkits(workDir);
 		if (tkits.isEmpty()) {
 			System.out.println("No translation kits present.");
 			return;

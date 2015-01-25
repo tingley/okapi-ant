@@ -35,11 +35,12 @@ import org.apache.tools.ant.types.FileSet;
 
 public class TranslateTask extends BasePipelineTask {
 
-	public static final String WORK_DIR_NAME = "work";
+	public static final String DEFAULT_WORK_DIR = "work";
 	public static final String DEFAULT_TM_DIR = "l10n";
 
 	// Parameters
 	private Path tmDir;
+	private Path workDir;
 	private String inEnc = Charset.defaultCharset().name();
 	private String outEnc = Charset.defaultCharset().name();
 	private int matchThreshold = 95;
@@ -60,6 +61,9 @@ public class TranslateTask extends BasePipelineTask {
 	}
 	public void setTmDir(String tmdir) {
 		this.tmDir = fs.getPath(tmdir);
+	}
+	public void setWorkDir(String dir) {
+		this.workDir = fs.getPath(dir);
 	}
 	public void setInEnc(String inEnc) {
 		this.inEnc = inEnc;
@@ -101,6 +105,9 @@ public class TranslateTask extends BasePipelineTask {
 		}
 		if (!Files.isDirectory(tmDir)) {
 			throw new BuildException("TM dir not present.");
+		}
+		if (workDir == null) {
+			workDir = tmDir.resolve(DEFAULT_WORK_DIR);
 		}
 		if (filesets.isEmpty()) {
 			throw new BuildException("No files specified to translate.");
@@ -171,8 +178,7 @@ public class TranslateTask extends BasePipelineTask {
 		for (File tmx : tmDir.toFile().listFiles(TaskUtil.TMX_FILE_FILTER)) {
 			
 			LocaleId trgLocale = TaskUtil.guessLocale(tmx, srcLang);
-			
-			File tkit = getTkits(tmDir).get(trgLocale);
+			File tkit = getTkits(workDir).get(trgLocale);
 			if (tkit != null && tkitWasModified(tkit, tmx.lastModified())) {
 				System.out.println("Translation kit is newer than existing data. Post-processing...");
 				PostProcessTranslationTask pp = new PostProcessTranslationTask();
@@ -239,18 +245,16 @@ public class TranslateTask extends BasePipelineTask {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static Map<LocaleId, File> getTkits(Path tmDir) {
+	public static Map<LocaleId, File> getTkits(Path workDir) {
 
-		File workDir = tmDir.resolve(WORK_DIR_NAME).toFile();
-
-		if (!workDir.isDirectory()) {
-			//System.out.println("Translation work directory doesn't exist.");
+		if (!Files.isDirectory(workDir)) {
+			//System.out.println("Translation work directory " + workDir + " doesn't exist.");
 			return Collections.EMPTY_MAP;
 		}
 
 		Map<LocaleId, File> tkits = new HashMap<LocaleId, File>();
 
-		for (File f : workDir.listFiles()) {
+		for (File f : workDir.toFile().listFiles()) {
 			if (f.isDirectory() && new File(f, "omegat.project").exists()) {
 				tkits.put(TaskUtil.guessLocale(f, null), f);
 			}
@@ -311,8 +315,7 @@ public class TranslateTask extends BasePipelineTask {
                 + "allowSegmentation.b=false\n"
                 + "includePostProcessingHook.b=true");
 		ep.setPackageName("Translate_" + locale.toString());
-		File outDir = tmDir.resolve(WORK_DIR_NAME).toFile();
-		ep.setPackageDirectory(outDir.getAbsolutePath());
+		ep.setPackageDirectory(workDir.toString());
 		
 		for (RawDocument doc : docs) {
 			driver.addBatchItem(doc, doc.getInputURI(), outEnc);
