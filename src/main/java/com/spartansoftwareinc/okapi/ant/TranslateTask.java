@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,9 +35,10 @@ import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.types.FileSet;
 
 public class TranslateTask extends BasePipelineTask {
-	
+
 	public static final String WORK_DIR_NAME = "work";
-	
+
+	// Parameters
 	private String tmdir = "l10n";
 	private String inEnc = Charset.defaultCharset().name();
 	private String outEnc = Charset.defaultCharset().name();
@@ -45,7 +48,11 @@ public class TranslateTask extends BasePipelineTask {
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	private String srcLang = null;
 	private String srx = null;
-	
+	private String targetDir = null;
+
+	// State
+	private Path targetPath = null;
+
 	private FilterConfigurationMapper fcMapper = null;
 	
 	public void setSrcLang(String srcLang) {
@@ -59,6 +66,15 @@ public class TranslateTask extends BasePipelineTask {
 	}
 	public void setOutEnc(String outEnc) {
 		this.outEnc = outEnc;
+	}
+	/**
+	 * Set the path to the directory where target files should be generated.
+	 * If this is not set, files will be generated in the same locations that
+	 * their corresponding source files were found.
+	 * @param targetDir Path to the directory, which is expected to exist
+	 */
+	public void setTargetDir(String targetDir) {
+	    this.targetDir = targetDir;
 	}
 	public void setMatchThreshold(String matchThreshold) {
 		this.matchThreshold = Integer.parseInt(matchThreshold);
@@ -80,12 +96,19 @@ public class TranslateTask extends BasePipelineTask {
 
 	@Override
 	void checkConfiguration() throws BuildException {
+	    FileSystem fs = FileSystems.getDefault();
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
 		if (!tmDir.isDirectory()) {
 			throw new BuildException("TM dir not present.");
 		}
 		if (filesets.isEmpty()) {
 			throw new BuildException("No files specified to translate.");
+		}
+		if (targetDir != null) {
+			targetPath = fs.getPath(targetDir);
+			if (!Files.exists(targetPath)) {
+				throw new BuildException("Target directory " + targetPath + " does not exist");
+			}
 		}
 		if (srcLang == null) {
 			throw new BuildException("Source language must be set.");
@@ -162,12 +185,11 @@ public class TranslateTask extends BasePipelineTask {
 
 			lp.setResourceParameters("biFile=" + tmx.getAbsolutePath());
 			sniffer.setTargetLocale(trgLocale);
-			
+
 			Set<RawDocument> rawDocs = new HashSet<RawDocument>();
-			
-			for (File f : TaskUtil.filesetToFiles(filesets)) {
-				URI inUri = Util.toURI(f.getAbsolutePath());
-				String ext = splitExt(f)[1];
+
+			for (TaskUtil.FileSetEntry entry : TaskUtil.filesetToFiles(filesets)) {
+				String ext = getExtension(entry.getFilename());
 				String filterId = getMappedFilter(ext);
 				if (filterId == null) {
 					FilterConfiguration fc = getFilterMapper().getDefaultConfigurationFromExtension(ext);
@@ -175,16 +197,16 @@ public class TranslateTask extends BasePipelineTask {
 						filterId = fc.configId;
 					}
 				}
-				RawDocument rawDoc = new RawDocument(inUri, inEnc, new LocaleId(srcLang), trgLocale, filterId);
-				URI outUri = getOutUri(f, trgLocale);
+				RawDocument rawDoc = new RawDocument(entry.getURI(), inEnc, new LocaleId(srcLang), trgLocale, filterId);
+				URI outUri = getOutUri(entry, trgLocale);
 				driver.addBatchItem(rawDoc, outUri, outEnc);
 				rawDocs.add(rawDoc);
 			}
-			
+
 			driver.processBatch();
-			
+
 			driver.clearItems();
-			
+
 			if (sniffer.getTotal() != sniffer.getLeveraged()) {
 				System.out.println("There are some untranslated strings for " + trgLocale);
 				if (!"false".equals(getProject().getProperty("okapi.generate"))) {
@@ -300,26 +322,40 @@ public class TranslateTask extends BasePipelineTask {
 		for (RawDocument doc : docs) {
 			driver.addBatchItem(doc, doc.getInputURI(), outEnc);
 		}
-		
+
 		driver.processBatch();
 	}
-	
 
-	private String[] splitExt(File file) {
-		String name = file.getName();
+	private String getExtension(String name) {
 		int lastDot = name.lastIndexOf('.');
 		if (lastDot == -1) {
-			return new String[] { name, "" };
+			return "";
 		}
-		String basename = name.substring(0, lastDot);
-		String ext = name.substring(lastDot);
-		return new String[] { basename, ext };
+		return name.substring(lastDot);
 	}
-	
-	private URI getOutUri(File file, LocaleId locale) {
-		String[] split = splitExt(file);
-		File outFile = new File(file.getParentFile(),
-				split[0] + "_" + locale.toPOSIXLocaleId() + split[1]);
-		return outFile.toURI();
+
+	private URI getOutUri(TaskUtil.FileSetEntry entry, LocaleId locale) {
+		try {
+			Path targetDir = entry.getBaseDir().toPath();
+			if (targetPath != null) {
+				targetDir = ensureDirectory(targetPath.resolve(entry.getBaseDir().getName()));
+			}
+			// Now get the locale directory
+			Path targetLocaleDir = ensureDirectory(targetDir.resolve(locale.toPOSIXLocaleId()));
+			// Now resolve the individual file.
+			Path targetFilePath = targetLocaleDir.resolve(entry.getFilename());
+			ensureDirectory(targetFilePath.getParent());
+			return targetFilePath.toUri();
+		}
+		catch (IOException e) {
+			throw new BuildException("Failed to create target for " + entry.getPath(), e);
+		}
+	}
+
+	private Path ensureDirectory(Path dir) throws IOException {
+		if (!Files.exists(dir)) {
+			dir = Files.createDirectories(dir);
+		}
+		return dir;
 	}
 }
