@@ -110,43 +110,43 @@ public class TranslateTask extends BasePipelineTask {
 
 	@Override
 	void executeWithOkapiClassloader() {
-		
+
 		// Make pipeline.
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(getFilterMapper());
-		
+
 		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
-		
+
 		if (srx != null) {
 			// Step 2: Segmentation
 			SegmentationStep segmentation = new SegmentationStep();
 			driver.addStep(segmentation);
-			
+
 			net.sf.okapi.steps.segmentation.Parameters sp =
 					(net.sf.okapi.steps.segmentation.Parameters) segmentation.getParameters();
 			sp.setSegmentSource(true);
 			sp.setSourceSrxPath(new File(getProject().getBaseDir(), srx).getAbsolutePath());
 			sp.setCopySource(false);
 		}
-		
+
 		// Step 3: Leverage
 		LeveragingStep leverage = new LeveragingStep();
 		driver.addStep(leverage);
-		
+
 		net.sf.okapi.steps.leveraging.Parameters lp =
 				(net.sf.okapi.steps.leveraging.Parameters) leverage.getParameters();
 		lp.setResourceClassName("net.sf.okapi.connectors.bifile.BilingualFileConnector");
 		lp.setFillTarget(true);
 		lp.setFillTargetThreshold(matchThreshold);
-		
+
 		// Step 4: Leveraging Result Sniffer
 		LeveragingResultSniffer sniffer = new LeveragingResultSniffer();
 		driver.addStep(sniffer);
-		
+
 		// Step 5: Filter Events to Raw Docs (write output files)
 		driver.addStep(new FilterEventsToRawDocumentStep());
-		
+
 		// Run pipeline once for each TMX
 		File tmDir = new File(getProject().getBaseDir(), tmdir);
 		for (File tmx : tmDir.listFiles(TaskUtil.TMX_FILE_FILTER)) {
@@ -193,7 +193,7 @@ public class TranslateTask extends BasePipelineTask {
 			}
 		}
 	}
-	
+
 	private boolean tkitWasModified(File tkit, final long timestamp) {
 		File target = new File(tkit, "target");
 		final WrappedBool b = new WrappedBool();
@@ -215,32 +215,32 @@ public class TranslateTask extends BasePipelineTask {
 		}
 		return b.value;
 	}
-	
+
 	class WrappedBool {
 		public boolean value = false;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public static Map<LocaleId, File> getTkits(File tmDir) {
-		
+
 		File workDir = new File(tmDir, WORK_DIR_NAME);
-		
+
 		if (!workDir.isDirectory()) {
 			//System.out.println("Translation work directory doesn't exist.");
 			return Collections.EMPTY_MAP;
 		}
-		
+
 		Map<LocaleId, File> tkits = new HashMap<LocaleId, File>();
-		
+
 		for (File f : workDir.listFiles()) {
 			if (f.isDirectory() && new File(f, "omegat.project").exists()) {
 				tkits.put(TaskUtil.guessLocale(f, null), f);
 			}
 		}
-		
+
 		return tkits;
 	}
-	
+
 	private String getMappedFilter(String ext) {
 		for (FilterMapping fm : filterMappings) {
 			if (fm.extension.equalsIgnoreCase(ext)) {
@@ -249,19 +249,19 @@ public class TranslateTask extends BasePipelineTask {
 		}
 		return null;
 	}
-	
+
 	private void generateOmegaTKit(LocaleId locale, LeveragingStep lStep, Set<RawDocument> docs, File tmx) {
-		
+
 		// Make pipeline.
 		PipelineDriver driver = new PipelineDriver();
 		driver.setFilterConfigurationMapper(getFilterMapper());
-		
+
 		driver.setRootDirectories("", getProject().getBaseDir().getAbsolutePath());
 		driver.setOutputDirectory(getProject().getBaseDir().getAbsolutePath());
-		
+
 		// Step 1: Raw Docs to Filter Events
 		driver.addStep(new RawDocumentToFilterEventsStep());
-		
+
 		if (srx != null) {
 			// Step 2: Segmentation
 			SegmentationStep segmentation = new SegmentationStep();
@@ -273,18 +273,18 @@ public class TranslateTask extends BasePipelineTask {
 			sp.setSourceSrxPath(new File(getProject().getBaseDir(), srx).getAbsolutePath());
 			sp.setCopySource(false);
 		}
-		
+
 		// Step 3: Leverage
 		driver.addStep(lStep);
-		
+
 		// Step 4: Approve ALL the TUs!
 		ApproverStep approver = new ApproverStep();
 		driver.addStep(approver);
-		
+
 		// Step 5: Extraction
 		ExtractionStep extraction = new ExtractionStep();
 		driver.addStep(extraction);
-		
+
 		net.sf.okapi.steps.rainbowkit.creation.Parameters ep =
 				(net.sf.okapi.steps.rainbowkit.creation.Parameters) extraction.getParameters();
 		ep.setWriterClass("net.sf.okapi.steps.rainbowkit.omegat.OmegaTPackageWriter");
