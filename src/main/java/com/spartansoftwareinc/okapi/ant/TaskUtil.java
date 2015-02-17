@@ -9,6 +9,8 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -17,6 +19,8 @@ import java.util.regex.Pattern;
 import net.sf.okapi.applications.rainbow.Input;
 import net.sf.okapi.common.FileUtil;
 import net.sf.okapi.common.LocaleId;
+import net.sf.okapi.common.plugins.PluginsManager;
+
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.types.FileSet;
@@ -41,39 +45,59 @@ public class TaskUtil {
     	return input;
 	}
 	
-	public static File createTempDir(String prefix) throws IOException {
-		File f = File.createTempFile(prefix, "");
-		
-		if (!f.delete() || !f.mkdir()) {
-			throw new BuildException("Failed to create temporary directory");
+	/**
+	 * Initialize a plugin manager, using the specified temporary working
+	 * directory.
+	 * @param tempPluginsDir
+	 * @return
+	 * @throws IOException
+	 */
+	public static PluginsManager createPluginsManager(Path tempPluginsDir, List<FileSet> filesets) throws IOException {
+		// FileSet handling
+		for (FileSet fs : filesets) {
+			DirectoryScanner ds = fs.getDirectoryScanner();
+			ds.scan();
+			File baseDir = ds.getBasedir();
+			for (String filename : ds.getIncludedFiles()) {
+				File f = new File(baseDir, filename);
+				TaskUtil.copyJarToDirectory(tempPluginsDir, f, false);
+			}
 		}
-		return f;
+		PluginsManager plManager = new PluginsManager();
+		System.out.println("Discovering from " + tempPluginsDir.toFile());
+		plManager.discover(tempPluginsDir.toFile(), false);
+		return plManager;
 	}
-	
-	public static void deleteDirectory(File dir) {
+
+	public static void deleteDirectory(Path dir) {
 		if (dir == null) {
 			return;
 		}
-		for (File f : dir.listFiles()) {
-			if (f.isDirectory()) {
-				deleteDirectory(f);
+		try {
+			for (File f : dir.toFile().listFiles()) {
+				if (f.isDirectory()) {
+					deleteDirectory(f.toPath());
+				}
+				else {
+					f.delete();
+				}
 			}
-			else {
-				f.delete();
-			}
+			Files.delete(dir);
 		}
-		dir.delete();
+		catch (IOException e) {
+			throw new BuildException("Failed to delete " + dir, e);
+		}
 	}
 	
-	public static File copyJarToDirectory(File dir, File f, boolean useTempName) throws IOException {
-		File dest = new File(dir, f.getName());
+	public static Path copyJarToDirectory(Path dir, File f, boolean useTempName) throws IOException {
+		Path dest = dir.resolve(f.getName());
 		if (useTempName) {
 			// Use temp file functionality to avoid name collisions when we 
 			// flatten the directory structure
-			dest = File.createTempFile("plugin", ".jar", dir);
+			dest = Files.createTempFile(dir, "plugin", ".jar");
 		}
 		InputStream is = new BufferedInputStream(new FileInputStream(f));
-		OutputStream os = new BufferedOutputStream(new FileOutputStream(dest));
+		OutputStream os = new BufferedOutputStream(Files.newOutputStream(dest));
 		byte[] buf = new byte[8192];
 		for (int r = is.read(buf); r != -1; r = is.read(buf)) {
 			os.write(buf, 0, r);

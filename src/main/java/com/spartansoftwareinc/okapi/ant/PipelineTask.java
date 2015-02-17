@@ -1,6 +1,9 @@
 package com.spartansoftwareinc.okapi.ant;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,18 +25,34 @@ public class PipelineTask extends BasePipelineTask {
 	 * 		<filterMapping extension=".xml" filterConfig="okf_xmlstream@myConfig" />
 	 * 		<fileset dir="files" includes"..." />
 	 * 		<!-- How to handle plugins? I will need to figure it out. 
-	 *           I think I need a <plugins> element with embedded filesets. -->
+	 *           I think I need a <plugins> element with embedded filesets.
+	 *           The other tasks just use a fileset for the plugins. -->
+	 *      <plugins>
+	 *      	<fileset dir="plugins" includes="..." />
+	 *      </plugins>
 	 * </okapi:exec-pipeline>
 	 *
-	 * Things to do: - Handle plugins - Specify output - I might need to specify
-	 * the baseDir somehow?
+	 * Things to do:
+	 * - Specify output
+	 * - I might need to specify the baseDir somehow?
+	 * - Okapi PipelineStorage load code warns & removes missing plugins from
+	 *   pipelines.  Can I make this be a hard error? 
 	 */
-
 	private String srcLang, tgtLang, srcEncoding, tgtEncoding;
 	private String plnPath;
 	private String filterConfigPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
+	private Plugins plugins;
+	private Path tempPluginsDir;
+
+	public Plugins createPlugins() {
+		if (plugins != null) {
+			throw new BuildException("Only one <plugins> element is allowed");
+		}
+		plugins = new Plugins();
+		return plugins;
+	}
 
 	public void setSrcLang(String value) {
 		this.srcLang = value;
@@ -80,23 +99,42 @@ public class PipelineTask extends BasePipelineTask {
 			TaskUtil.checkPath("filterConfigPath", filterConfigPath);
 		}
 		normalizeFilterMappings();
+		if (plugins != null) {
+			System.out.println("Got plugins element");
+		}
 	}
 
 	@Override
 	void executeWithOkapiClassloader() {
-		FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigPath,
-				null);
-		PluginsManager plManager = new PluginsManager();
-		PipelineWrapper pipelineWrapper = getPipelineWrapper(getProject()
-				.getBaseDir(), fcMapper, plManager);
-		pipelineWrapper.load(plnPath);
-		Project prj = createProject(pipelineWrapper);
-		for (FileSet fs : filesets) {
-			for (String s : fs.getDirectoryScanner().getIncludedFiles()) {
-				addFileToProject(prj, new File(s));
+		PluginsManager plManager = null;
+		try {
+			FilterConfigurationMapper fcMapper = getFilterMapper(filterConfigPath,
+					null);
+			tempPluginsDir = Files.createTempDirectory("plugins");
+			if (plugins != null) {
+				plManager = TaskUtil.createPluginsManager(tempPluginsDir, plugins.filesets);
 			}
+			else {
+				plManager = new PluginsManager();
+			}
+			PipelineWrapper pipelineWrapper = getPipelineWrapper(getProject()
+					.getBaseDir(), fcMapper, plManager);
+			pipelineWrapper.load(plnPath);
+			Project prj = createProject(pipelineWrapper);
+			for (FileSet fs : filesets) {
+				for (String s : fs.getDirectoryScanner().getIncludedFiles()) {
+					addFileToProject(prj, new File(s));
+				}
+			}
+			pipelineWrapper.execute(prj);
 		}
-		pipelineWrapper.execute(prj);
+		catch (IOException e) {
+			throw new BuildException("Failed to initialize plugins", e);
+		}
+		finally {
+			System.out.println("Cleaning up temp plugin storage " + tempPluginsDir);
+			//TaskUtil.deleteDirectory(tempPluginsDir);
+		}
 	}
 
 	@Override
@@ -163,4 +201,16 @@ public class PipelineTask extends BasePipelineTask {
 		}
 		return filename.substring(i);
 	}
+
+	public class Plugins {
+		List<FileSet> filesets = new ArrayList<FileSet>();
+		public Plugins() { }
+		public void addFileset(FileSet fileset) {
+			this.filesets.add(fileset);
+		}
+		public List<FileSet> getFilesets() {
+			return filesets;
+		}
+	}
+
 }

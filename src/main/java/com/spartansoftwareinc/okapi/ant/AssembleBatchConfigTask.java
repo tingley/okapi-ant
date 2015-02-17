@@ -1,9 +1,11 @@
 package com.spartansoftwareinc.okapi.ant;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+
 import net.sf.okapi.applications.rainbow.Input;
 import net.sf.okapi.applications.rainbow.Project;
 import net.sf.okapi.applications.rainbow.batchconfig.BatchConfiguration;
@@ -14,7 +16,6 @@ import net.sf.okapi.common.plugins.PluginItem;
 import net.sf.okapi.common.plugins.PluginsManager;
 
 import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.types.FileSet;
 
 public class AssembleBatchConfigTask extends BasePipelineTask {
@@ -25,7 +26,7 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	
-	private File tempPluginsDir = null;
+	private Path tempPluginsDir = null;
 	
 	public void setSettings(String settingsPath) {
 		this.rnbPath = settingsPath;
@@ -48,29 +49,6 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		return fm;
 	}
 	
-	/**
-	 * Initialize a plugin manager, using the specified temporary working
-	 * directory.
-	 * @param tempPluginsDir
-	 * @return
-	 * @throws IOException
-	 */
-	PluginsManager createPluginsManager(File tempPluginsDir) throws IOException {
-		// FileSet handling
-		for (FileSet fs : filesets) {
-			DirectoryScanner ds = fs.getDirectoryScanner();
-			ds.scan();
-			File baseDir = ds.getBasedir();
-			for (String filename : ds.getIncludedFiles()) {
-				File f = new File(baseDir, filename);
-				TaskUtil.copyJarToDirectory(tempPluginsDir, f, false);
-			}
-		}
-		PluginsManager plManager = new PluginsManager();
-		plManager.discover(tempPluginsDir, false);
-		return plManager;
-	}
-
 	@Override
 	void executeWithOkapiClassloader() {
 	    try {
@@ -89,8 +67,8 @@ public class AssembleBatchConfigTask extends BasePipelineTask {
 		// fileset to a temporary directory.
 		PluginsManager plManager = null;
 		try {
-			tempPluginsDir = TaskUtil.createTempDir("plugins");
-			plManager = createPluginsManager(tempPluginsDir);
+			tempPluginsDir = Files.createTempDirectory("plugins");
+			plManager = TaskUtil.createPluginsManager(tempPluginsDir, filesets);
 		}
 		catch (IOException e) {
 			throw new BuildException("Failed to initialize plugins", e);
