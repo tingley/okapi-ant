@@ -1,11 +1,13 @@
 <?xml version="1.0"?>
 <antlib>
-    <taskdef name="mkbconf" 
-        classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask"/>
-    <taskdef name="installbconf" 
-        classname="com.spartansoftwareinc.okapi.ant.InstallBatchConfigTask"/>
-    <taskdef name="translate"
-    	classname="com.spartansoftwareinc.okapi.ant.TranslateTask"/>
-    <taskdef name="post-translate"
-    	classname="com.spartansoftwareinc.okapi.ant.PostProcessTranslationTask"/>
+	<taskdef name="mkbconf" 
+		classname="com.spartansoftwareinc.okapi.ant.AssembleBatchConfigTask"/>
+	<taskdef name="installbconf" 
+		classname="com.spartansoftwareinc.okapi.ant.InstallBatchConfigTask"/>
+	<taskdef name="translate"
+		classname="com.spartansoftwareinc.okapi.ant.TranslateTask"/>
+	<taskdef name="post-translate"
+		classname="com.spartansoftwareinc.okapi.ant.PostProcessTranslationTask"/>
+	<taskdef name="exec-pipeline"
+		classname="com.spartansoftwareinc.okapi.ant.PipelineTask"/>
 </antlib>
