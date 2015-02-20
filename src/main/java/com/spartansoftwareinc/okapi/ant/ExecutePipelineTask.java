@@ -16,12 +16,14 @@ import net.sf.okapi.common.filters.FilterConfigurationMapper;
 import net.sf.okapi.common.plugins.PluginsManager;
 
 import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.DirectoryScanner;
 import org.apache.tools.ant.types.FileSet;
 
-public class PipelineTask extends BasePipelineTask {
+public class ExecutePipelineTask extends BasePipelineTask {
 	/**
 	 * <okapi:exec-pipeline pipeline="foo.pln" srcLang="en" tgtLang="fr"
-	 * 			srcEncoding="UTF-8" tgtEncoding="UTF-8" filterConfigDir="filterConfigs">
+	 * 			srcEncoding="UTF-8" tgtEncoding="UTF-8" filterConfigDir="filterConfigs"
+	 * 	        outputDir="output">
 	 * 		<filterMapping extension=".xml" filterConfig="okf_xmlstream@myConfig" />
 	 * 		<fileset dir="files" includes"..." />
 	 * 		<!-- How to handle plugins? I will need to figure it out. 
@@ -41,6 +43,7 @@ public class PipelineTask extends BasePipelineTask {
 	private String srcLang, tgtLang, srcEncoding, tgtEncoding;
 	private String plnPath;
 	private String filterConfigPath;
+	private String outputDirPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
 	private Plugins plugins;
@@ -77,6 +80,10 @@ public class PipelineTask extends BasePipelineTask {
 	public void setFilterConfigDir(String filterConfigPath) {
 		this.filterConfigPath = filterConfigPath;
 	}
+	public void setOutputDir(String outputDirPath) {
+		System.out.println("Setting output dir to " + outputDirPath);
+		this.outputDirPath = outputDirPath;
+	}
 
 	public void addFileset(FileSet fileset) {
 		this.filesets.add(fileset);
@@ -96,7 +103,10 @@ public class PipelineTask extends BasePipelineTask {
 		TaskUtil.checkExists("tgtEncoding", tgtEncoding);
 		TaskUtil.checkExists(plnPath, "plnPath");
 		if (filterConfigPath != null) {
-			TaskUtil.checkPath("filterConfigPath", filterConfigPath);
+			TaskUtil.checkDir("filterConfigPath", filterConfigPath);
+		}
+		if (outputDirPath != null) {
+			TaskUtil.checkDir("outputDirPath", outputDirPath);
 		}
 		normalizeFilterMappings();
 		if (plugins != null) {
@@ -122,8 +132,9 @@ public class PipelineTask extends BasePipelineTask {
 			pipelineWrapper.load(plnPath);
 			Project prj = createProject(pipelineWrapper);
 			for (FileSet fs : filesets) {
-				for (String s : fs.getDirectoryScanner().getIncludedFiles()) {
-					addFileToProject(prj, new File(s));
+				DirectoryScanner ds = fs.getDirectoryScanner(getProject());
+				for (String s : ds.getIncludedFiles()) {
+					addFileToProject(prj, new File(ds.getBasedir(), s));
 				}
 			}
 			pipelineWrapper.execute(prj);
@@ -132,9 +143,14 @@ public class PipelineTask extends BasePipelineTask {
 			throw new BuildException("Failed to initialize plugins", e);
 		}
 		finally {
-			System.out.println("Cleaning up temp plugin storage " + tempPluginsDir);
-			//TaskUtil.deleteDirectory(tempPluginsDir);
+			TaskUtil.deleteDirectory(tempPluginsDir);
 		}
+	}
+
+	private String getProjectOutputPath(File baseDir) {
+		// XXX Doesn't work for absolute path
+		return outputDirPath != null ?
+				new File(baseDir, outputDirPath).getAbsolutePath() : baseDir.getPath();
 	}
 
 	@Override
@@ -143,9 +159,10 @@ public class PipelineTask extends BasePipelineTask {
 		ExecutionContext context = new ExecutionContext();
 		context.setApplicationName("Longhorn");
 		context.setIsNoPrompt(true);
+		String outputRoot = getProjectOutputPath(baseDir);
 		PipelineWrapper pipelineWrapper = new PipelineWrapper(fcMapper,
-				baseDir.getPath(), plManager, baseDir.getPath(),
-				baseDir.getPath(), baseDir.getPath(), null, context);
+				baseDir.getPath(), plManager, outputRoot,
+				baseDir.getPath(), outputRoot, null, context);
 		pipelineWrapper.addFromPlugins(plManager);
 		return pipelineWrapper;
 	}
@@ -157,7 +174,8 @@ public class PipelineTask extends BasePipelineTask {
 		project.setSourceLanguage(new LocaleId(srcLang, true));
 		project.setTargetLanguage(new LocaleId(tgtLang, true));
 		project.setInputRoot(0, projectPath, true);
-		project.setOutputRoot(projectPath);
+		String outputRoot = getProjectOutputPath(getProject().getBaseDir());
+		project.setOutputRoot(outputRoot);
 		project.setUseOutputRoot(true);
 		return project;
 	}

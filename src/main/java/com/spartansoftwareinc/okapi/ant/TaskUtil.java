@@ -112,13 +112,20 @@ public class TaskUtil {
 			throw new BuildException("Required attribute '" + name + "' was not set");
 		}
 	}
-	static void checkPath(String name, String value) {
+	static void checkDir(String name, String value) {
+		File f = checkPath(name, value);
+		if (!f.isDirectory()) {
+			throw new BuildException("Value of " + name + " is not a directory: " + value);
+		}
+	}
+	static File checkPath(String name, String value) {
 		checkExists(name, value);
 		File f = new File(value);
 		if (!f.exists()) {
 			throw new BuildException("Invalid " + name + " value: " + 
 					value);
 		}
+		return f;
 	}
 	static void checkEmptyDirectory(String name, String value, boolean createIfMissing) {
 		File f = new File(value);

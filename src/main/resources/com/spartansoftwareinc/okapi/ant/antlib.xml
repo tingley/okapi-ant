@@ -9,5 +9,5 @@
 	<taskdef name="post-translate"
 		classname="com.spartansoftwareinc.okapi.ant.PostProcessTranslationTask"/>
 	<taskdef name="exec-pipeline"
-		classname="com.spartansoftwareinc.okapi.ant.PipelineTask"/>
+		classname="com.spartansoftwareinc.okapi.ant.ExecutePipelineTask"/>
 </antlib>
