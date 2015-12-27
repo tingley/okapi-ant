@@ -9,6 +9,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -50,6 +51,8 @@ public class TranslateTask extends BasePipelineTask {
 	private String srcLang = null;
 	private String srx = null;
 	private Path targetPath = null;
+	private TargetPattern targetPattern = null;
+	private TranslatedPathTemplate pathTemplate = TranslatedPathTemplate.defaultTemplate();
 
 	// State
 	private FileSystem fs = FileSystems.getDefault();
@@ -97,6 +100,12 @@ public class TranslateTask extends BasePipelineTask {
 	public void setSrx(String srx) {
 		this.srx = srx;
 	}
+	public void addTarget(TargetPattern targetPattern) {
+		if (this.targetPattern != null) {
+			throw new BuildException("Only one <target> element is allowed.");
+		}
+		this.targetPattern = targetPattern;
+	}
 
 	@Override
 	void checkConfiguration() throws BuildException {
@@ -123,6 +132,9 @@ public class TranslateTask extends BasePipelineTask {
 			if (!srxFile.isFile()) {
 				throw new BuildException("Could not locate specified SRX file.");
 			}
+		}
+		if (targetPattern != null) {
+			pathTemplate = targetPattern.getPathTemplate();
 		}
 	}
 	
@@ -200,7 +212,7 @@ public class TranslateTask extends BasePipelineTask {
 					}
 				}
 				RawDocument rawDoc = new RawDocument(entry.getURI(), inEnc, new LocaleId(srcLang), trgLocale, filterId);
-				URI outUri = getOutUri(entry, trgLocale);
+				URI outUri = getOutputUri(entry, ext, trgLocale);
 				driver.addBatchItem(rawDoc, outUri, outEnc);
 				rawDocs.add(rawDoc);
 			}
@@ -332,18 +344,20 @@ public class TranslateTask extends BasePipelineTask {
 		return name.substring(lastDot);
 	}
 
-	private URI getOutUri(TaskUtil.FileSetEntry entry, LocaleId locale) {
+	private URI getOutputUri(TaskUtil.FileSetEntry entry, String extension, LocaleId locale) {
 		try {
-			Path targetDir = entry.getBaseDir().toPath();
-			if (targetPath != null) {
-				targetDir = ensureDirectory(targetPath.resolve(entry.getBaseDir().getName()));
+			String dirName = entry.getBaseDir().getName();
+			String fileName = entry.getFilename();
+			if (fileName.endsWith(extension)) {
+				fileName = fileName.substring(0, fileName.length() - extension.length());
 			}
-			// Now get the locale directory
-			Path targetLocaleDir = ensureDirectory(targetDir.resolve(locale.toPOSIXLocaleId()));
-			// Now resolve the individual file.
-			Path targetFilePath = targetLocaleDir.resolve(entry.getFilename());
-			ensureDirectory(targetFilePath.getParent());
-			return targetFilePath.toUri();
+			String targetBase = targetPath != null ? targetPath.toString() : "";
+			String tgtPathStr = pathTemplate.resolvePath(targetBase, dirName, fileName, extension, locale);
+			Path targetPath = Paths.get(tgtPathStr);
+			ensureDirectory(targetPath.getParent());
+			System.out.println("Resolved dir=" + dirName + ", file=" + entry.getFilename() +
+							   ", locale=" + locale + " ==> " + targetPath);
+			return targetPath.toUri();
 		}
 		catch (IOException e) {
 			throw new BuildException("Failed to create target for " + entry.getPath(), e);
