@@ -58,14 +58,4 @@
         <okapi:installbconf bconf="output2.bconf" dir="t2" />
     </target>
 
-    <!-- Translation task example: Translate localizable assets as
-       - part of the build process. Specify -Dokapi.generate=false to prevent
-       - generation of OmegaT translation kits for incomplete languages. -->
-    <target name="translate">
-        <okapi:translate srcLang="en-us" srx="l10n/Segmentation.srx">
-                <filterMapping extension=".properties" filterConfig="okf_properties" />
-                <fileset dir="src" includes="**/Strings.properties" />
-            </okapi:translate>
-    </target>
-
 </project>

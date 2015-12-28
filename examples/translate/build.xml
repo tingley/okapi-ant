@@ -42,7 +42,7 @@
                 <!-- Override the default pattern, embed locale in filename -->
                 <target pattern="@{targetBase}@{dir}@{file}_@{locale}@{extension}" />
                 <fileset dir="src" includes="*" />
-            </okapi:translate>
+        </okapi:translate>
     </target>
 
     <target name="clean">
