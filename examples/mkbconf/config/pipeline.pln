@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rainbowPipeline version="1"><step class="net.sf.okapi.steps.common.RawDocumentToFilterEventsStep"></step>
+<step class="net.sf.okapi.steps.segmentation.SegmentationStep">#v1
+segmentSource.b=true
+segmentTarget.b=false
+renumberCodes.b=false
+sourceSrxPath=config/defaultSegmentation.srx
+targetSrxPath=
+copySource.b=true
+checkSegments.b=false
+trimSrcLeadingWS.i=-1
+trimSrcTrailingWS.i=-1
+trimTrgLeadingWS.i=-1
+trimTrgTrailingWS.i=-1
+forceSegmentedOutput.b=true
+overwriteSegmentation.b=false
+deepenSegmentation.b=false</step>
+<step class="net.sf.okapi.steps.rainbowkit.creation.ExtractionStep">#v1
+writerClass=net.sf.okapi.steps.rainbowkit.xliff.XLIFFPackageWriter
+packageName=pack1
+packageDirectory=${inputRootDir}
+supportFiles=
+message=
+outputManifest.b=true
+createZip.b=true
+sendOutput.b=false
+writerOptions.placeholderMode.b=true
+writerOptions.includeNoTranslate.b=true
+writerOptions.setApprovedAsNoTranslate.b=false
+writerOptions.copySource.b=true
+writerOptions.includeAltTrans.b=true
+writerOptions.includeCodeAttrs.b=false
+writerOptions.includeIts.b=true
+writerOptions.useSkeleton.b=false</step>
+</rainbowPipeline>

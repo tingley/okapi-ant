@@ -1,0 +1,51 @@
+<project name="test" default="build" basedir="."
+         xmlns:okapi="antlib:com.spartansoftwareinc.okapi.ant">
+
+    <!-- Specify local Okapi install via OKAPI_HOME envar for portability,
+       - or else hard code the path. -->
+    <property environment="env"/>
+    <condition property="okapi.lib" value="${env.OKAPI_HOME}/lib"
+        else="/Applications/okapi-apps_cocoa-macosx-x86_64_0.28/lib">
+        <isset property="env.OKAPI_HOME"/>
+    </condition>
+
+    <property name="config.dir" value="config" />
+    <property name="plugins.dir" value="plugins" />
+    <property name="build.dir" value="build" />
+
+    <!-- okapi-ant needs both its own code and an Okapi installation to load. -->
+    <path id="okapi.classpath">
+        <fileset dir="${okapi.lib}" includes="**/*.jar" />
+        <fileset dir="../../target" includes="okapi-ant-1.2-SNAPSHOT.jar" />
+    </path>
+
+    <!-- Load all the tasks in the okapi namespace. -->
+    <taskdef uri="antlib:com.spartansoftwareinc.okapi.ant"
+        resource="com/spartansoftwareinc/okapi/ant/antlib.xml"
+        classpathref="okapi.classpath" />
+
+    <target name="build">
+        <!-- Create the output directory -->
+        <mkdir dir="${build.dir}" />
+        <okapi:mkbconf pipeline="${config.dir}/pipeline.pln" 
+                 bconfPath="${build.dir}/extract.bconf"
+                 filterConfigDir="${config.dir}">
+            <!-- If there are any plugins, we can include them here
+                 as a fileset. 
+            <fileset dir="${plugins.dir}" includes="**/*.jar"/>
+            -->
+            <!-- custom filter configuration; the task will look in
+               - 'filterConfigDir' to find it. -->
+            <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
+            <!-- filter configurations from a custom filter contained in a
+               - plugin can be referenced directly.
+            <filterMapping extension="" filterConfig="okf_foo" />
+             -->
+        </okapi:mkbconf>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build.dir}" failonerror="false" />
+    </target>
+
+</project>
