@@ -25,10 +25,36 @@
         classpathref="okapi.classpath" />
 
     <target name="build">
+        <echo message="Choose either 'ant pipeline' or 'ant rainbow'" />
+    </target>
+
+    <!-- Build using a pipeline file -->
+    <target name="pipeline">
         <!-- Create the output directory -->
         <mkdir dir="${build.dir}" />
         <okapi:mkbconf pipeline="${config.dir}/pipeline.pln" 
-                 bconfPath="${build.dir}/extract.bconf"
+                 bconfPath="${build.dir}/pipeline.bconf"
+                 filterConfigDir="${config.dir}">
+            <!-- If there are any plugins, we can include them here
+                 as a fileset. 
+            <fileset dir="${plugins.dir}" includes="**/*.jar"/>
+            -->
+            <!-- custom filter configuration; the task will look in
+               - 'filterConfigDir' to find it. -->
+            <filterMapping extension=".xml" filterConfig="okf_xmlstream@cdata" />
+            <!-- filter configurations from a custom filter contained in a
+               - plugin can be referenced directly.
+            <filterMapping extension="" filterConfig="okf_foo" />
+             -->
+        </okapi:mkbconf>
+    </target>
+
+    <!-- Build using a rainbow settings file -->
+    <target name="rainbow">
+        <!-- Create the output directory -->
+        <mkdir dir="${build.dir}" />
+        <okapi:mkbconf pipeline="${config.dir}/settings.rnb" 
+                 bconfPath="${build.dir}/rainbow.bconf"
                  filterConfigDir="${config.dir}">
             <!-- If there are any plugins, we can include them here
                  as a fileset. 
