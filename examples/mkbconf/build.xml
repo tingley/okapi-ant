@@ -53,7 +53,7 @@
     <target name="rainbow">
         <!-- Create the output directory -->
         <mkdir dir="${build.dir}" />
-        <okapi:mkbconf pipeline="${config.dir}/settings.rnb" 
+        <okapi:mkbconf settings="${config.dir}/settings.rnb" 
                  bconfPath="${build.dir}/rainbow.bconf"
                  filterConfigDir="${config.dir}">
             <!-- If there are any plugins, we can include them here
