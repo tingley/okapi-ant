@@ -37,7 +37,7 @@ import org.apache.tools.ant.types.FileSet;
 public class TranslateTask extends BasePipelineTask {
 
 	public static final String DEFAULT_WORK_DIR = "work";
-	public static final String DEFAULT_TM_DIR = "l10n";
+	public static final String DEFAULT_RESOURCES_DIR = "l10n";
 
 	// Parameters
 	private Path tmDir;
@@ -110,7 +110,7 @@ public class TranslateTask extends BasePipelineTask {
 	@Override
 	void checkConfiguration() throws BuildException {
 		if (tmDir == null) {
-			tmDir = getProject().getBaseDir().toPath().resolve(DEFAULT_TM_DIR);
+			tmDir = getProject().getBaseDir().toPath().resolve(DEFAULT_RESOURCES_DIR);
 		}
 		if (!Files.isDirectory(tmDir)) {
 			throw new BuildException("TM dir not present.");
@@ -140,7 +140,7 @@ public class TranslateTask extends BasePipelineTask {
 	
 	private FilterConfigurationMapper getFilterMapper() {
 		if (fcMapper == null) {
-			String filterConfigDirPath = filterConfigDir == null ? tmDir.toString()
+			String filterConfigDirPath = filterConfigDir == null ? DEFAULT_RESOURCES_DIR
 					: new File(getProject().getBaseDir(), filterConfigDir).getAbsolutePath();
 			fcMapper = super.getFilterMapper(filterConfigDirPath, null);
 		}
