@@ -40,6 +40,11 @@ like this:
 
 The antlib.xml file will define all tasks within the `okapi:` namespace.
 
+Documentation
+-------------
+
+Task documentation is available on the [wiki](https://github.com/tingley/okapi-ant/wiki).
+
 Examples
 --------
 
