@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tmx version="1.4">
+  <header creationtool="Test" creationtoolversion="8.0"
+    datatype="xml" segtype="sentence" adminlang="en-US" srclang="en-US"
+    o-tmf="TMX 1.4b" creationdate="20141210T193746Z" creationid="System">
+  </header>
+  <body>
+    <tu srclang="en-US" creationid="Admin"
+      creationdate="20060107T001803Z" changeid="Admin"
+      changedate="20060331T213422Z" tuid="1">
+      <tuv xml:lang="en-US">
+          <seg>Dummy</seg>
+      </tuv>
+      <tuv xml:lang="fr-FR">
+          <seg>Dummy</seg>
+      </tuv>
+    </tu>
+  </body>
+</tmx>

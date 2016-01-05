@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -163,15 +164,36 @@ public class TaskUtil {
 		
 		throw new BuildException("Could not determine target language of file " + file.getAbsolutePath());
 	}
-	
-	public static List<File> filesetToFiles(List<FileSet> filesets) {
-		List<File> result = new ArrayList<File>();
+
+	public static class FileSetEntry {
+	    private File baseDir;
+	    private String filename;
+	    public FileSetEntry(File baseDir, String filename) {
+	        this.baseDir = baseDir;
+	        this.filename = filename;
+	    }
+	    public File getBaseDir() {
+	        return baseDir;
+	    }
+	    public String getFilename() {
+	        return filename;
+	    }
+	    public Path getPath() {
+	        return baseDir.toPath().resolve(filename);
+	    }
+	    public URI getURI() {
+	        return getPath().toUri();
+	    }
+	}
+
+	public static List<FileSetEntry> filesetToFiles(List<FileSet> filesets) {
+		List<FileSetEntry> result = new ArrayList<FileSetEntry>();
 		for (FileSet set : filesets) {
 			DirectoryScanner ds = set.getDirectoryScanner();
 			ds.scan();
 			File baseDir = ds.getBasedir();
 			for (String filename : ds.getIncludedFiles()) {
-				result.add(new File(baseDir, filename));
+				result.add(new FileSetEntry(baseDir, filename));
 			}
 		}
 		return result;

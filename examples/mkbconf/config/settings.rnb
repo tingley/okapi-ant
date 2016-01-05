@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rainbowProject version="4"><fileSet id="1"><root useCustom="0">/Users/chase</root></fileSet><fileSet id="2"><root useCustom="0">/Users/chase</root></fileSet><fileSet id="3"><root useCustom="0">/Users/chase</root></fileSet><output><root use="0"></root><subFolder use="0"></subFolder><extension use="1" style="0">.out</extension><replace use="0" oldText="" newText=""></replace><prefix use="0"></prefix><suffix use="0"></suffix></output><options sourceLanguage="en-us" sourceEncoding="MacRoman" targetLanguage="fr-fr" targetEncoding="MacRoman"></options><parametersFolder useCustom="0">/Users/chase</parametersFolder><utilities xml:spaces="preserve"><params id="currentProjectPipeline">&lt;?xml version="1.0" encoding="UTF-8"?>
+&lt;rainbowPipeline version="1">&lt;step class="net.sf.okapi.steps.common.RawDocumentToFilterEventsStep">&lt;/step>
+&lt;step class="net.sf.okapi.steps.segmentation.SegmentationStep">#v1
+segmentSource.b=true
+segmentTarget.b=false
+renumberCodes.b=false
+sourceSrxPath=config/defaultSegmentation.srx
+targetSrxPath=
+copySource.b=true
+checkSegments.b=false
+trimSrcLeadingWS.i=-1
+trimSrcTrailingWS.i=-1
+trimTrgLeadingWS.i=-1
+trimTrgTrailingWS.i=-1
+forceSegmentedOutput.b=true
+overwriteSegmentation.b=false
+deepenSegmentation.b=false&lt;/step>
+&lt;step class="net.sf.okapi.steps.rainbowkit.creation.ExtractionStep">#v1
+writerClass=net.sf.okapi.steps.rainbowkit.xliff.XLIFFPackageWriter
+packageName=pack1
+packageDirectory=${inputRootDir}
+supportFiles=
+message=
+outputManifest.b=true
+createZip.b=false
+sendOutput.b=false
+writerOptions.placeholderMode.b=true
+writerOptions.includeNoTranslate.b=true
+writerOptions.setApprovedAsNoTranslate.b=false
+writerOptions.copySource.b=true
+writerOptions.includeAltTrans.b=true
+writerOptions.includeCodeAttrs.b=false
+writerOptions.includeIts.b=true
+writerOptions.useSkeleton.b=false&lt;/step>
+&lt;/rainbowPipeline>
+</params></utilities></rainbowProject>

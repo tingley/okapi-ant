@@ -1,5 +1,10 @@
-target
+/target
+/examples/translate/tkits
+/examples/translate/translations
+/examples/post-translate/tkits
+build
 .project
 .settings
 .classpath
 *.swp
+tags

@@ -2,6 +2,7 @@ package com.spartansoftwareinc.okapi.ant;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -21,28 +22,14 @@ import org.apache.tools.ant.types.FileSet;
 
 public class ExecutePipelineTask extends BasePipelineTask {
 	/**
-	 * <okapi:exec-pipeline pipeline="foo.pln" srcLang="en" tgtLang="fr"
-	 * 			srcEncoding="UTF-8" tgtEncoding="UTF-8" filterConfigDir="filterConfigs"
-	 * 	        outputDir="output">
-	 * 		<filterMapping extension=".xml" filterConfig="okf_xmlstream@myConfig" />
-	 * 		<fileset dir="files" includes"..." />
-	 * 		<!-- How to handle plugins? I will need to figure it out. 
-	 *           I think I need a <plugins> element with embedded filesets.
-	 *           The other tasks just use a fileset for the plugins. -->
-	 *      <plugins>
-	 *      	<fileset dir="plugins" includes="..." />
-	 *      </plugins>
-	 * </okapi:exec-pipeline>
-	 *
-	 * Things to do:
-	 * - Specify output
-	 * - I might need to specify the baseDir somehow?
 	 * - Okapi PipelineStorage load code warns & removes missing plugins from
 	 *   pipelines.  Can I make this be a hard error? 
 	 */
-	private String srcLang, tgtLang, srcEncoding, tgtEncoding;
+	private String srcLang, tgtLang;
+	private String srcEncoding = Charset.defaultCharset().name(),
+				   tgtEncoding = Charset.defaultCharset().name();
 	private String plnPath;
-	private String filterConfigPath;
+	private String filterConfigPath = TranslateTask.DEFAULT_RESOURCES_DIR;
 	private String outputDirPath;
 	private List<FileSet> filesets = new ArrayList<FileSet>();
 	private List<FilterMapping> filterMappings = new ArrayList<FilterMapping>();
@@ -99,8 +86,6 @@ public class ExecutePipelineTask extends BasePipelineTask {
 	void checkConfiguration() throws BuildException {
 		TaskUtil.checkExists("srcLang", srcLang);
 		TaskUtil.checkExists("tgtLang", tgtLang);
-		TaskUtil.checkExists("srcEncoding", srcEncoding);
-		TaskUtil.checkExists("tgtEncoding", tgtEncoding);
 		TaskUtil.checkExists(plnPath, "plnPath");
 		if (filterConfigPath != null) {
 			TaskUtil.checkDir("filterConfigPath", filterConfigPath);
@@ -188,7 +173,7 @@ public class ExecutePipelineTask extends BasePipelineTask {
 					"Unable to find a filter configuration for "
 							+ file.getName());
 		}
-		if (project.addDocument(0, file.getAbsolutePath(), null, null,
+		if (project.addDocument(0, file.getAbsolutePath(), srcEncoding, tgtEncoding,
 				filterConfigId, false) == 1) {
 			throw new BuildException("Adding document " + file.getName()
 					+ " to list of input files failed");

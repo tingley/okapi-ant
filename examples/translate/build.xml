@@ -1,0 +1,62 @@
+<project name="test" default="build" basedir="."
+         xmlns:okapi="antlib:com.spartansoftwareinc.okapi.ant">
+
+    <!-- Specify local Okapi install via OKAPI_HOME envar for portability,
+       - or else hard code the path. -->
+    <property environment="env"/>
+    <condition property="okapi.lib" value="${env.OKAPI_HOME}/lib"
+        else="/Applications/okapi-apps_cocoa-macosx-x86_64_0.28/lib">
+        <isset property="env.OKAPI_HOME"/>
+    </condition>
+
+    <property name="work.dir" value="tkits" />
+    <property name="completed.work.dir" value="completed" />
+    <property name="target.dir" value="translations" />
+
+    <!-- okapi-ant needs both its own code and an Okapi installation to load. -->
+    <path id="okapi.classpath">
+        <fileset dir="${okapi.lib}" includes="**/*.jar" />
+        <fileset dir="../../target" includes="okapi-ant-1.2-SNAPSHOT.jar" />
+    </path>
+
+    <!-- Load all the tasks in the okapi namespace. -->
+    <taskdef uri="antlib:com.spartansoftwareinc.okapi.ant"
+        resource="com/spartansoftwareinc/okapi/ant/antlib.xml"
+        classpathref="okapi.classpath" />
+
+    <target name="build">
+    <!-- Translation task example: Translate localizable assets as
+       - part of the build process. Specify -Dokapi.generate=false to prevent
+       - generation of OmegaT translation kits for incomplete languages. 
+       - Use TMX in tms directory.
+       - Write target files to locale-specific directories under 
+         translations/. 
+      -->
+        <mkdir dir="${work.dir}" />
+        <mkdir dir="${target.dir}" />
+        <okapi:translate srcLang="en-us" 
+                         targetDir="${target.dir}"
+                         workDir="${work.dir}"
+                         tmDir="tm"
+                         srx="defaultSegmentation.srx">
+                <filterMapping extension=".properties" filterConfig="okf_properties" />
+                <!-- Override the default pattern, embed locale in filename -->
+                <target pattern="@{targetBase}@{dir}@{file}_@{locale}@{extension}" />
+                <fileset dir="src" includes="*" />
+        </okapi:translate>
+    </target>
+
+    <!-- Run 'translate' again, this time completing the translation process
+       - by generating target files and updating the TMX. -->
+    <target name="complete">
+        <mkdir dir="${target.dir}" />
+        <copy file="${completed.work.dir}/test.html.xlf" tofile="${work.dir}/Translate_fr-fr/target/src/test.html.xlf" />
+        <antcall target="build" />
+    </target>
+
+    <target name="clean">
+        <delete dir="${work.dir}" failonerror="false" />
+        <delete dir="${target.dir}" failonerror="false" />
+    </target>
+
+</project>
