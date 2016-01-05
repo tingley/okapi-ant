@@ -2,6 +2,7 @@
 /examples/translate/tkits
 /examples/translate/translations
 /examples/post-translate/tkits
+/examples/installbconf/explode
 build
 .project
 .settings
