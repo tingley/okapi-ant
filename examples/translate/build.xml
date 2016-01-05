@@ -10,6 +10,7 @@
     </condition>
 
     <property name="work.dir" value="tkits" />
+    <property name="completed.work.dir" value="completed" />
     <property name="target.dir" value="translations" />
 
     <!-- okapi-ant needs both its own code and an Okapi installation to load. -->
@@ -43,6 +44,14 @@
                 <target pattern="@{targetBase}@{dir}@{file}_@{locale}@{extension}" />
                 <fileset dir="src" includes="*" />
         </okapi:translate>
+    </target>
+
+    <!-- Run 'translate' again, this time completing the translation process
+       - by generating target files and updating the TMX. -->
+    <target name="complete">
+        <mkdir dir="${target.dir}" />
+        <copy file="${completed.work.dir}/test.html.xlf" tofile="${work.dir}/Translate_fr-fr/target/src/test.html.xlf" />
+        <antcall target="build" />
     </target>
 
     <target name="clean">

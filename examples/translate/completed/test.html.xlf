@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:okp="okapi-framework:xliff-extensions" xmlns:its="http://www.w3.org/2005/11/its" xmlns:itsxlf="http://www.w3.org/ns/its-xliff/" its:version="2.0">
+<file original="src/test.html" source-language="en-us" target-language="fr-fr" datatype="html">
+<body>
+<trans-unit id="1">
+<source xml:lang="en-us">Hello <bpt id="1" ctype="x-b">&lt;b&gt;</bpt>world<ept id="1">&lt;/b&gt;</ept>.</source>
+<seg-source><mrk mid="0" mtype="seg">Hello <bpt id="1" ctype="x-b">&lt;b&gt;</bpt>world<ept id="1">&lt;/b&gt;</ept>.</mrk></seg-source>
+<target xml:lang="fr-fr"><mrk mid="0" mtype="seg">Bonjour <bpt id="1" ctype="x-b">&lt;b&gt;</bpt>le monde<ept id="1">&lt;/b&gt;</ept>.</mrk></target>
+</trans-unit>
+</body>
+</file>
+</xliff>
