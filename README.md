@@ -55,13 +55,13 @@ Sample ant files that demonstrate the various tasks can be found in the
 Okapi Version Support
 ---------------------
 
-Okapi M26 or later is required.
+Okapi M35 or later is required.
 
 
 Java Version Support
 --------------------
 
-As Okapi M26 and later requires Java 7, so too does this project.
+As Okapi M35 and later requires Java 7, so too does this project.
 
 
 License

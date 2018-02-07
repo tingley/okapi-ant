@@ -22,14 +22,14 @@ public class TestTranslatedPathTemplate {
 	@Test
 	public void testResolveDefaultTemplate() {
 		// "@locale/@dir@file@extension"
-		assertEquals("foo/fr-fr/bar/quux.html",
+		assertEquals("foo/fr-FR/bar/quux.html",
 				TranslatedPathTemplate.defaultTemplate().resolvePath("foo", "bar", "quux", ".html",
 									new LocaleId("fr", "fr")));
 	}
 
 	@Test
 	public void testResolveCustomTemplate() {
-		assertEquals("foo/bar/quux_fr-fr.html",
+		assertEquals("foo/bar/quux_fr-FR.html",
 					 TranslatedPathTemplate.fromString("@{targetBase}@{dir}@{file}_@{locale}@{extension}")
 					 	.resolvePath("foo", "bar", "quux", ".html", new LocaleId("fr", "fr")));
 	}
