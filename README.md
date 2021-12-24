@@ -30,7 +30,7 @@ like this:
        load. -->
     <path id="okapi.classpath">
       <fileset dir="${okapi.lib}" includes="**/*.jar" />
-      <fileset dir="${basedir}" includes="okapi-ant-1.3.jar" />
+      <fileset dir="${basedir}" includes="okapi-ant-1.4.jar" />
     </path>
     
     <!-- Load all the tasks in the okapi namespace.  -->

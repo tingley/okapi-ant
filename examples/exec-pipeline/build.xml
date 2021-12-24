@@ -16,7 +16,7 @@
     <!-- okapi-ant needs both its own code and an Okapi installation to load. -->
     <path id="okapi.classpath">
         <fileset dir="${okapi.lib}" includes="**/*.jar" />
-        <fileset dir="../../target" includes="okapi-ant-1.3.jar" />
+        <fileset dir="../../target" includes="okapi-ant-1.4.jar" />
     </path>
 
     <!-- Load all the tasks in the okapi namespace. -->
