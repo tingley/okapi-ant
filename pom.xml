@@ -12,16 +12,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <okapi.version>0.35</okapi.version>
+    <maven.compiler.release>17</maven.compiler.release>
+    <okapi.version>1.48.0</okapi.version>
   </properties>
-
-  <repositories>
-    <repository>
-      <id>okapi-release</id>
-      <name>Okapi Release</name>
-      <url>http://repository-okapi.forge.cloudbees.com/release/</url>
-    </repository>
-  </repositories>
 
   <dependencies>
     <dependency>
@@ -100,11 +93,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
-        <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
-        </configuration>
+        <version>3.11.0</version>
       </plugin>
     </plugins>
   </build>

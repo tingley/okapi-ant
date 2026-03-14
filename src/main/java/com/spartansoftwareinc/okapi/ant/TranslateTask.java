@@ -166,7 +166,6 @@ public class TranslateTask extends BasePipelineTask {
 					(net.sf.okapi.steps.segmentation.Parameters) segmentation.getParameters();
 			sp.setSegmentSource(true);
 			sp.setSourceSrxPath(new File(getProject().getBaseDir(), srx).getAbsolutePath());
-			sp.setCopySource(false);
 		}
 
 		// Step 3: Leverage
@@ -305,7 +304,6 @@ public class TranslateTask extends BasePipelineTask {
 					(net.sf.okapi.steps.segmentation.Parameters) segmentation.getParameters();
 			sp.setSegmentSource(true);
 			sp.setSourceSrxPath(new File(getProject().getBaseDir(), srx).getAbsolutePath());
-			sp.setCopySource(false);
 		}
 
 		// Step 3: Leverage

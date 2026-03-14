@@ -156,8 +156,8 @@ public class ExecutePipelineTask extends BasePipelineTask {
 	private Project createProject(PipelineWrapper pipelineWrapper) {
 		Project project = new Project(new LanguageManager());
 		String projectPath = getProject().getBaseDir().getAbsolutePath();
-		project.setSourceLanguage(new LocaleId(srcLang, true));
-		project.setTargetLanguage(new LocaleId(tgtLang, true));
+		project.setSourceLanguage(new LocaleId(srcLang));
+		project.setTargetLanguage(new LocaleId(tgtLang));
 		project.setInputRoot(0, projectPath, true);
 		String outputRoot = getProjectOutputPath(getProject().getBaseDir());
 		project.setOutputRoot(outputRoot);
