@@ -2,7 +2,7 @@ okapi-ant
 =========
 
 This is a collection of ant tasks that provide functionality based on the 
-[Okapi Framework](http://okapi.opentag.com/).
+[Okapi Framework](https://gitlab.com/okapiframework/Okapi).
 
 Currently, it supports 5 tasks:
 
@@ -10,7 +10,7 @@ Currently, it supports 5 tasks:
    translation workflow
 - `okapi:mkbconf` and `okapi:installbconf - tasks to work with batch 
    configuration (bconf) files for use with 
-   [Longhorn](http://www.opentag.com/okapi/wiki/index.php?title=longhorn).
+   [Longhorn](https://okapiframework.org/wiki/index.php/Longhorn).
 - `okapi:exec-pipeline` - execute a pre-defined okapi pipeline
 
 
